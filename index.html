@@ -1,12 +1,838 @@
 <!DOCTYPE html>
+
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Parure</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Parure"/>
+  <title>Parure</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;background:#f7f5f3;font-family:"Noto Sans JP",sans-serif}
+    #root{height:100%;min-height:100vh}
+    ::-webkit-scrollbar{display:none}
+    input,button,select,textarea{font-family:"Noto Sans JP",sans-serif}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    @keyframes pop{0%{transform:scale(0.5);opacity:0}80%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+    input:focus{border-color:#9b59b6!important;background:white!important;outline:none}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script>
+    const {useState, useEffect} = React;
+
+const getUsers = () => {
+try {
+return JSON.parse(localStorage.getItem(“parure_users”) || “{}”);
+} catch (e) {
+return {};
+}
+};
+const saveUsers = (u) => localStorage.setItem(“parure_users”, JSON.stringify(u));
+const getSession = () => {
+try {
+return JSON.parse(localStorage.getItem(“parure_session”) || “null”);
+} catch (e) {
+return null;
+}
+};
+const saveSession = (u) => localStorage.setItem(“parure_session”, JSON.stringify(u));
+const clearSession = () => localStorage.removeItem(“parure_session”);
+function AuthScreen({ onLogin }) {
+const [mode, setMode] = useState(“login”);
+const [step, setStep] = useState(1);
+const [form, setForm] = useState({
+name: “”,
+password: “”,
+confirm: “”,
+birthdate: “”,
+height: “”,
+weight: “”,
+hairLength: “”,
+personalColor: “”,
+skeletonType: “”
+});
+const [errors, setErrors] = useState({});
+const [loading, setLoading] = useState(false);
+const [done, setDone] = useState(false);
+const set = (k) => (e) => setForm((f) => ({ …f, [k]: e.target.value }));
+const setVal = (k, v) => setForm((f) => ({ …f, [k]: v }));
+const validateStep1 = () => {
+const e = {};
+if (!form.name.trim() || form.name.length < 2) e.name = “2\u6587\u5B57\u4EE5\u4E0A\u3067\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044”;
+if (form.password.length < 4) e.password = “\u30D1\u30B9\u30EF\u30FC\u30C9\u306F4\u6587\u5B57\u4EE5\u4E0A\u306B\u3057\u3066\u304F\u3060\u3055\u3044”;
+if (form.password !== form.confirm) e.confirm = “\u30D1\u30B9\u30EF\u30FC\u30C9\u304C\u4E00\u81F4\u3057\u307E\u305B\u3093”;
+return e;
+};
+const validateStep2 = () => {
+const e = {};
+if (!form.birthdate) e.birthdate = “\u751F\u5E74\u6708\u65E5\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044”;
+if (!form.height || isNaN(form.height)) e.height = “\u8EAB\u9577\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044”;
+if (!form.weight || isNaN(form.weight)) e.weight = “\u4F53\u91CD\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044”;
+if (!form.hairLength) e.hairLength = “\u9AEA\u306E\u9577\u3055\u3092\u9078\u3093\u3067\u304F\u3060\u3055\u3044”;
+if (!form.personalColor) e.personalColor = “\u30D1\u30FC\u30BD\u30CA\u30EB\u30AB\u30E9\u30FC\u3092\u9078\u3093\u3067\u304F\u3060\u3055\u3044”;
+if (!form.skeletonType) e.skeletonType = “\u9AA8\u683C\u30BF\u30A4\u30D7\u3092\u9078\u3093\u3067\u304F\u3060\u3055\u3044”;
+return e;
+};
+const handleNext = () => {
+const e = validateStep1();
+setErrors(e);
+if (Object.keys(e).length > 0) return;
+const users = getUsers();
+if (users[form.name]) {
+setErrors({ name: “\u3053\u306E\u30E6\u30FC\u30B6\u30FC\u540D\u306F\u3059\u3067\u306B\u4F7F\u308F\u308C\u3066\u3044\u307E\u3059” });
+return;
+}
+setStep(2);
+};
+const handleRegister = () => {
+const e = validateStep2();
+setErrors(e);
+if (Object.keys(e).length > 0) return;
+setLoading(true);
+setTimeout(() => {
+setLoading(false);
+const users = getUsers();
+const profile = { birthdate: form.birthdate, height: form.height, weight: form.weight, hairLength: form.hairLength, personalColor: form.personalColor, skeletonType: form.skeletonType };
+users[form.name] = { password: form.password, profile, createdAt: Date.now() };
+saveUsers(users);
+setDone(true);
+}, 800);
+};
+const handleLogin = () => {
+const e = {};
+if (!form.name.trim()) e.name = “\u30E6\u30FC\u30B6\u30FC\u540D\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044”;
+if (!form.password) e.password = “\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044”;
+setErrors(e);
+if (Object.keys(e).length > 0) return;
+setLoading(true);
+setTimeout(() => {
+setLoading(false);
+const users = getUsers();
+const u = users[form.name];
+if (!u || u.password !== form.password) {
+setErrors({ password: “\u30E6\u30FC\u30B6\u30FC\u540D\u307E\u305F\u306F\u30D1\u30B9\u30EF\u30FC\u30C9\u304C\u9055\u3044\u307E\u3059” });
+return;
+}
+const user = { name: form.name, profile: u.profile || {} };
+saveSession(user);
+onLogin(user);
+}, 800);
+};
+const handleStartAfterRegister = () => {
+var _a;
+const users = getUsers();
+const profile = ((_a = users[form.name]) == null ? void 0 : _a.profile) || {};
+const user = { name: form.name, profile };
+saveSession(user);
+onLogin(user);
+};
+const inp = (key) => ({
+width: “100%”,
+padding: “13px 16px”,
+borderRadius: “14px”,
+border: errors[key] ? “2px solid #e74c3c” : “2px solid #f0f0f0”,
+fontSize: “14px”,
+outline: “none”,
+background: “#fafafa”,
+color: “#2a2a2a”,
+fontFamily: “‘Noto Sans JP’, sans-serif”
+});
+const HAIR_OPTIONS = [”\u30B7\u30E7\u30FC\u30C8”, “\u30DF\u30C7\u30A3\u30A2\u30E0”, “\u30ED\u30F3\u30B0”, “\u30D9\u30EA\u30FC\u30ED\u30F3\u30B0”];
+const PC_OPTIONS = [
+{ label: “\u6625\uFF08\u30A4\u30A8\u30D9\u6625\uFF09”, value: “spring”, color: “#ffe0b2”, desc: “\u660E\u308B\u304F\u6696\u304B\u307F\u306E\u3042\u308B\u8272\u304C\u5F97\u610F” },
+{ label: “\u590F\uFF08\u30D6\u30EB\u30D9\u590F\uFF09”, value: “summer”, color: “#e1f5fe”, desc: “\u67D4\u3089\u304B\u304F\u6DBC\u3057\u3052\u306A\u8272\u304C\u5F97\u610F” },
+{ label: “\u79CB\uFF08\u30A4\u30A8\u30D9\u79CB\uFF09”, value: “autumn”, color: “#d7ccc8”, desc: “\u6DF1\u307F\u306E\u3042\u308B\u6E29\u304B\u3044\u8272\u304C\u5F97\u610F” },
+{ label: “\u51AC\uFF08\u30D6\u30EB\u30D9\u51AC\uFF09”, value: “winter”, color: “#e8eaf6”, desc: “\u306F\u3063\u304D\u308A\u3068\u3057\u305F\u9BAE\u3084\u304B\u306A\u8272\u304C\u5F97\u610F” }
+];
+if (done) {
+return /* @**PURE** */ React.createElement(“div”, { style: overlayStyle }, /* @**PURE** */ React.createElement(“div”, { style: { textAlign: “center”, padding: “80px 24px 40px” } }, /* @**PURE** */ React.createElement(“div”, { style: { fontSize: “64px”, marginBottom: “20px” } }, “\u{1F389}”), /* @**PURE** */ React.createElement(“div”, { style: { fontFamily: “‘Playfair Display’, serif”, fontSize: “26px”, fontWeight: “700”, marginBottom: “10px” } }, “\u767B\u9332\u5B8C\u4E86\uFF01”), /* @**PURE** */ React.createElement(“p”, { style: { color: “#888”, fontSize: “14px”, marginBottom: “32px”, lineHeight: “1.8” } }, “\u3088\u3046\u3053\u305D\u3001”, /* @**PURE** */ React.createElement(“strong”, { style: { color: “#9b59b6” } }, form.name), “ \u3055\u3093\uFF01”, /* @**PURE** */ React.createElement(“br”, null), “\u3042\u306A\u305F\u306E\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u3092\u5143\u306B”, /* @**PURE** */ React.createElement(“br”, null), “\u30D1\u30FC\u30BD\u30CA\u30E9\u30A4\u30BA\u3055\u308C\u305F\u30B3\u30FC\u30C7\u3092\u63D0\u6848\u3057\u307E\u3059\u2728”), /* @**PURE** */ React.createElement(“button”, { onClick: handleStartAfterRegister, style: btnStyle }, “\u30A2\u30D7\u30EA\u3092\u306F\u3058\u3081\u308B \u2192”)));
+}
+return /* @**PURE** */ React.createElement(“div”, { style: { …overlayStyle, overflowY: “auto” } }, /* @**PURE** */ React.createElement(“style”, null, `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap'); @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} } input:focus { border-color: #9b59b6 !important; background: white !important; } * { box-sizing: border-box; margin: 0; padding: 0; }`), /* @**PURE** */ React.createElement(“div”, { style: {
+background: “linear-gradient(135deg, #667eea 0%, #9b59b6 60%, #e91e63 100%)”,
+padding: “48px 20px 36px”,
+textAlign: “center”,
+borderRadius: “0 0 36px 36px”
+} }, /* @**PURE** */ React.createElement(“div”, { style: { fontFamily: “‘Playfair Display’, serif”, fontSize: “34px”, fontWeight: “700”, color: “white”, letterSpacing: “-1px” } }, “Parure”), /* @**PURE** */ React.createElement(“div”, { style: { color: “rgba(255,255,255,0.75)”, fontSize: “13px”, marginTop: “6px” } }, “\u3042\u306A\u305F\u3060\u3051\u306E\u30D5\u30A1\u30C3\u30B7\u30E7\u30F3AI”)), /* @**PURE** */ React.createElement(“div”, { style: { padding: “24px”, animation: “fadeUp 0.4s ease” } }, /* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, background: “#f0f0f0”, borderRadius: “14px”, padding: “4px”, marginBottom: “24px” } }, [“login”, “register”].map((m) => /* @**PURE** */ React.createElement(“button”, { key: m, onClick: () => {
+setMode(m);
+setStep(1);
+setErrors({});
+setForm({ name: “”, password: “”, confirm: “”, birthdate: “”, height: “”, weight: “”, hairLength: “”, personalColor: “”, skeletonType: “” });
+}, style: {
+flex: 1,
+padding: “10px”,
+border: “none”,
+borderRadius: “11px”,
+fontWeight: “700”,
+fontSize: “14px”,
+cursor: “pointer”,
+transition: “all 0.2s”,
+background: mode === m ? “white” : “transparent”,
+color: mode === m ? “#9b59b6” : “#aaa”,
+boxShadow: mode === m ? “0 2px 8px rgba(0,0,0,0.1)” : “none”,
+fontFamily: “‘Noto Sans JP’, sans-serif”
+} }, m === “login” ? “\u30ED\u30B0\u30A4\u30F3” : “\u65B0\u898F\u767B\u9332”))), mode === “login” && /* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, flexDirection: “column”, gap: “14px” } }, /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“input”, { placeholder: “\u30E6\u30FC\u30B6\u30FC\u540D”, value: form.name, onChange: set(“name”), style: inp(“name”) }), errors.name && /* @**PURE** */ React.createElement(“div”, { style: errStyle }, errors.name)), /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“input”, { placeholder: “\u30D1\u30B9\u30EF\u30FC\u30C9”, type: “password”, value: form.password, onChange: set(“password”), style: inp(“password”) }), errors.password && /* @**PURE** */ React.createElement(“div”, { style: errStyle }, errors.password)), /* @**PURE** */ React.createElement(“button”, { onClick: handleLogin, disabled: loading, style: { …btnStyle, opacity: loading ? 0.75 : 1 } }, loading ? “\u51E6\u7406\u4E2D\u2026” : “\u30ED\u30B0\u30A4\u30F3”)), mode === “register” && step === 1 && /* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, flexDirection: “column”, gap: “14px” } }, /* @**PURE** */ React.createElement(“div”, { style: { fontSize: “12px”, color: “#aaa”, textAlign: “center”, marginBottom: “4px” } }, “\u30B9\u30C6\u30C3\u30D7 1 / 2\u3000\u30A2\u30AB\u30A6\u30F3\u30C8\u60C5\u5831”), /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“input”, { placeholder: “\u30E6\u30FC\u30B6\u30FC\u540D\uFF082\u6587\u5B57\u4EE5\u4E0A\uFF09”, value: form.name, onChange: set(“name”), style: inp(“name”) }), errors.name && /* @**PURE** */ React.createElement(“div”, { style: errStyle }, errors.name)), /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“input”, { placeholder: “\u30D1\u30B9\u30EF\u30FC\u30C9\uFF084\u6587\u5B57\u4EE5\u4E0A\uFF09”, type: “password”, value: form.password, onChange: set(“password”), style: inp(“password”) }), errors.password && /* @**PURE** */ React.createElement(“div”, { style: errStyle }, errors.password)), /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“input”, { placeholder: “\u30D1\u30B9\u30EF\u30FC\u30C9\uFF08\u78BA\u8A8D\uFF09”, type: “password”, value: form.confirm, onChange: set(“confirm”), style: inp(“confirm”) }), errors.confirm && /* @**PURE** */ React.createElement(“div”, { style: errStyle }, errors.confirm)), /* @**PURE** */ React.createElement(“button”, { onClick: handleNext, style: btnStyle }, “\u6B21\u3078 \u2192 \u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u5165\u529B”)), mode === “register” && step === 2 && /* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, flexDirection: “column”, gap: “18px” } }, /* @**PURE** */ React.createElement(“div”, { style: { fontSize: “12px”, color: “#aaa”, textAlign: “center” } }, “\u30B9\u30C6\u30C3\u30D7 2 / 2\u3000\u3042\u306A\u305F\u306E\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB”), /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“label”, { style: { fontSize: “12px”, fontWeight: “700”, color: “#555”, display: “block”, marginBottom: “6px” } }, “\u{1F382} \u751F\u5E74\u6708\u65E5”), /* @**PURE** */ React.createElement(“input”, { type: “date”, value: form.birthdate, onChange: set(“birthdate”), style: inp(“birthdate”) }), errors.birthdate && /* @**PURE** */ React.createElement(“div”, { style: errStyle }, errors.birthdate)), /* @**PURE** */ React.createElement(“div”, { style: { display: “grid”, gridTemplateColumns: “1fr 1fr”, gap: “10px” } }, /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“label”, { style: { fontSize: “12px”, fontWeight: “700”, color: “#555”, display: “block”, marginBottom: “6px” } }, “\u{1F4CF} \u8EAB\u9577 (cm)”), /* @**PURE** */ React.createElement(“input”, { type: “number”, placeholder: “\u4F8B: 158”, value: form.height, onChange: set(“height”), style: inp(“height”) }), errors.height && /* @**PURE** */ React.createElement(“div”, { style: errStyle }, errors.height)), /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“label”, { style: { fontSize: “12px”, fontWeight: “700”, color: “#555”, display: “block”, marginBottom: “6px” } }, “\u2696\uFE0F \u4F53\u91CD (kg)”), /* @**PURE** */ React.createElement(“input”, { type: “number”, placeholder: “\u4F8B: 52”, value: form.weight, onChange: set(“weight”), style: inp(“weight”) }), errors.weight && /* @**PURE** */ React.createElement(“div”, { style: errStyle }, errors.weight))), /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“label”, { style: { fontSize: “12px”, fontWeight: “700”, color: “#555”, display: “block”, marginBottom: “8px” } }, “\u{1F487} \u9AEA\u306E\u9577\u3055”), /* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, gap: “8px”, flexWrap: “wrap” } }, HAIR_OPTIONS.map((h) => /* @**PURE** */ React.createElement(“button”, { key: h, onClick: () => setVal(“hairLength”, h), style: {
+padding: “8px 16px”,
+borderRadius: “20px”,
+border: “2px solid”,
+borderColor: form.hairLength === h ? “#9b59b6” : “#e0e0e0”,
+background: form.hairLength === h ? “#f5f0ff” : “white”,
+color: form.hairLength === h ? “#9b59b6” : “#666”,
+fontWeight: “600”,
+fontSize: “13px”,
+cursor: “pointer”,
+fontFamily: “‘Noto Sans JP’, sans-serif”,
+transition: “all 0.15s”
+} }, h))), errors.hairLength && /* @**PURE** */ React.createElement(“div”, { style: errStyle }, errors.hairLength)), /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“label”, { style: { fontSize: “12px”, fontWeight: “700”, color: “#555”, display: “block”, marginBottom: “8px” } }, “\u{1F3A8} \u30D1\u30FC\u30BD\u30CA\u30EB\u30AB\u30E9\u30FC”), /* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, flexDirection: “column”, gap: “8px” } }, PC_OPTIONS.map((pc) => /* @**PURE** */ React.createElement(“button”, { key: pc.value, onClick: () => setVal(“personalColor”, pc.value), style: {
+display: “flex”,
+alignItems: “center”,
+gap: “12px”,
+padding: “12px 14px”,
+borderRadius: “14px”,
+border: “2px solid”,
+borderColor: form.personalColor === pc.value ? “#9b59b6” : “#e0e0e0”,
+background: form.personalColor === pc.value ? “#f5f0ff” : “white”,
+cursor: “pointer”,
+textAlign: “left”,
+fontFamily: “‘Noto Sans JP’, sans-serif”,
+transition: “all 0.15s”
+} }, /* @**PURE** */ React.createElement(“div”, { style: { width: “36px”, height: “36px”, borderRadius: “50%”, background: pc.color, flexShrink: 0, border: “1px solid #ddd” } }), /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“div”, { style: { fontSize: “13px”, fontWeight: “700”, color: form.personalColor === pc.value ? “#9b59b6” : “#333” } }, pc.label), /* @**PURE** */ React.createElement(“div”, { style: { fontSize: “11px”, color: “#999”, marginTop: “2px” } }, pc.desc))))), errors.personalColor && /* @**PURE** */ React.createElement(“div”, { style: errStyle }, errors.personalColor)), /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“label”, { style: { fontSize: “12px”, fontWeight: “700”, color: “#555”, display: “block”, marginBottom: “8px” } }, “\u{1F9B4} \u9AA8\u683C\u30BF\u30A4\u30D7”), /* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, flexDirection: “column”, gap: “8px” } }, [
+{ value: “straight”, label: “\u30B9\u30C8\u30EC\u30FC\u30C8”, desc: “\u7B4B\u8089\u8CEA\u30FB\u7ACB\u4F53\u7684\u30FB\u4E0A\u91CD\u5FC3\u3002\u30B7\u30F3\u30D7\u30EB\u3067\u304D\u3061\u3093\u3068\u3057\u305F\u670D\u304C\u5F97\u610F”, icon: “\u25B2” },
+{ value: “wave”, label: “\u30A6\u30A7\u30FC\u30D6”, desc: “\u83EF\u5962\u30FB\u66F2\u7DDA\u7684\u30FB\u4E0B\u91CD\u5FC3\u3002\u67D4\u3089\u304B\u304F\u3075\u3093\u308F\u308A\u3057\u305F\u670D\u304C\u5F97\u610F”, icon: “\u301C” },
+{ value: “natural”, label: “\u30CA\u30C1\u30E5\u30E9\u30EB”, desc: “\u9AA8\u3084\u95A2\u7BC0\u304C\u76EE\u7ACB\u3064\u30FB\u30D5\u30EC\u30FC\u30E0\u611F\u3002\u3086\u308B\u3081\u306E\u670D\u304C\u5F97\u610F”, icon: “\u25C7” }
+].map((sk) => /* @**PURE** */ React.createElement(“button”, { key: sk.value, onClick: () => setVal(“skeletonType”, sk.value), style: {
+display: “flex”,
+alignItems: “center”,
+gap: “12px”,
+padding: “12px 14px”,
+borderRadius: “14px”,
+border: “2px solid”,
+borderColor: form.skeletonType === sk.value ? “#667eea” : “#e0e0e0”,
+background: form.skeletonType === sk.value ? “#eef0ff” : “white”,
+cursor: “pointer”,
+textAlign: “left”,
+fontFamily: “‘Noto Sans JP’, sans-serif”,
+transition: “all 0.15s”
+} }, /* @**PURE** */ React.createElement(“div”, { style: {
+width: “36px”,
+height: “36px”,
+borderRadius: “10px”,
+flexShrink: 0,
+background: form.skeletonType === sk.value ? “#667eea” : “#f0f0f0”,
+display: “flex”,
+alignItems: “center”,
+justifyContent: “center”,
+fontSize: “16px”,
+color: form.skeletonType === sk.value ? “white” : “#aaa”,
+fontWeight: “700”,
+transition: “all 0.15s”
+} }, sk.icon), /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“div”, { style: { fontSize: “13px”, fontWeight: “700”, color: form.skeletonType === sk.value ? “#667eea” : “#333” } }, sk.label), /* @**PURE** */ React.createElement(“div”, { style: { fontSize: “11px”, color: “#999”, marginTop: “2px” } }, sk.desc))))), errors.skeletonType && /* @**PURE** */ React.createElement(“div”, { style: errStyle }, errors.skeletonType)), /* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, gap: “10px” } }, /* @**PURE** */ React.createElement(“button”, { onClick: () => setStep(1), style: {
+padding: “14px”,
+borderRadius: “14px”,
+border: “2px solid #e0e0e0”,
+background: “white”,
+color: “#888”,
+fontWeight: “700”,
+cursor: “pointer”,
+fontFamily: “‘Noto Sans JP’, sans-serif”,
+fontSize: “14px”
+} }, “\u2190 \u623B\u308B”), /* @**PURE** */ React.createElement(“button”, { onClick: handleRegister, disabled: loading, style: { …btnStyle, flex: 1, opacity: loading ? 0.75 : 1 } }, loading ? “\u767B\u9332\u4E2D\u2026” : “\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210”))), /* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, alignItems: “center”, gap: “10px”, margin: “20px 0” } }, /* @**PURE** */ React.createElement(“div”, { style: { flex: 1, height: “1px”, background: “#eee” } }), /* @**PURE** */ React.createElement(“span”, { style: { fontSize: “12px”, color: “#bbb” } }, “\u307E\u305F\u306F”), /* @**PURE** */ React.createElement(“div”, { style: { flex: 1, height: “1px”, background: “#eee” } })), /* @**PURE** */ React.createElement(“button”, { onClick: () => {
+saveSession({ name: “\u30B2\u30B9\u30C8”, isGuest: true });
+onLogin({ name: “\u30B2\u30B9\u30C8”, isGuest: true });
+}, style: {
+width: “100%”,
+padding: “13px”,
+borderRadius: “14px”,
+border: “2px solid #e0e0e0”,
+background: “#fafafa”,
+color: “#888”,
+fontSize: “14px”,
+fontWeight: “600”,
+cursor: “pointer”,
+fontFamily: “‘Noto Sans JP’, sans-serif”
+} }, “\u{1F464} \u30B2\u30B9\u30C8\u3068\u3057\u3066\u7D9A\u3051\u308B”), /* @**PURE** */ React.createElement(“p”, { style: { textAlign: “center”, fontSize: “11px”, color: “#ccc”, marginTop: “8px” } }, “\u30B2\u30B9\u30C8\u306F\u30C7\u30FC\u30BF\u304C\u4FDD\u5B58\u3055\u308C\u307E\u305B\u3093”)));
+}
+const overlayStyle = {
+fontFamily: “‘Noto Sans JP’, sans-serif”,
+background: “white”,
+minHeight: “100vh”,
+maxWidth: “430px”,
+margin: “0 auto”
+};
+const btnStyle = {
+width: “100%”,
+padding: “15px”,
+borderRadius: “14px”,
+border: “none”,
+background: “linear-gradient(135deg, #667eea, #9b59b6)”,
+color: “white”,
+fontSize: “15px”,
+fontWeight: “700”,
+cursor: “pointer”,
+fontFamily: “‘Noto Sans JP’, sans-serif”,
+boxShadow: “0 4px 20px rgba(155,89,182,0.4)”
+};
+const errStyle = {
+color: “#e74c3c”,
+fontSize: “11px”,
+marginTop: “4px”,
+paddingLeft: “4px”
+};
+const TABS = [”\u30B3\u30FC\u30C7\u63D0\u6848”, “\u30AF\u30ED\u30FC\u30BC\u30C3\u30C8”, “\u30C8\u30EC\u30F3\u30C9”, “\u30B7\u30E7\u30C3\u30D7”, “\u30DE\u30A4\u30DA\u30FC\u30B8”];
+const SAMPLE_ITEMS = [
+{ id: 1, name: “\u767DT\u30B7\u30E3\u30C4”, category: “\u30C8\u30C3\u30D7\u30B9”, color: “#f5f5f5”, emoji: “\u{1F455}”, tags: [”\u30AB\u30B8\u30E5\u30A2\u30EB”, “\u30D9\u30FC\u30B7\u30C3\u30AF”] },
+{ id: 2, name: “\u30C7\u30CB\u30E0\u30B8\u30E3\u30B1\u30C3\u30C8”, category: “\u30A2\u30A6\u30BF\u30FC”, color: “#4a6fa5”, emoji: “\u{1F9E5}”, tags: [”\u30AB\u30B8\u30E5\u30A2\u30EB”, “\u30C7\u30CB\u30E0”] },
+{ id: 3, name: “\u30D6\u30E9\u30C3\u30AF\u30B9\u30AD\u30CB\u30FC”, category: “\u30DC\u30C8\u30E0\u30B9”, color: “#1a1a1a”, emoji: “\u{1F456}”, tags: [”\u30AB\u30B8\u30E5\u30A2\u30EB”, “\u30E2\u30FC\u30C9”] },
+{ id: 4, name: “\u30D5\u30ED\u30FC\u30E9\u30EB\u30EF\u30F3\u30D4\u30FC\u30B9”, category: “\u30EF\u30F3\u30D4\u30FC\u30B9”, color: “#e8a0bf”, emoji: “\u{1F457}”, tags: [”\u30D5\u30A7\u30DF\u30CB\u30F3”, “\u6625\u590F”] },
+{ id: 5, name: “\u767D\u30B9\u30CB\u30FC\u30AB\u30FC”, category: “\u30B7\u30E5\u30FC\u30BA”, color: “#ffffff”, emoji: “\u{1F45F}”, tags: [”\u30AB\u30B8\u30E5\u30A2\u30EB”, “\u30B9\u30DD\u30FC\u30C4”] },
+{ id: 6, name: “\u30EC\u30B6\u30FC\u30C8\u30FC\u30C8”, category: “\u30D0\u30C3\u30B0”, color: “#8B5E3C”, emoji: “\u{1F45C}”, tags: [”\u304D\u308C\u3044\u3081”, “\u901A\u52E4”] },
+{ id: 7, name: “\u30B9\u30C8\u30E9\u30A4\u30D7\u30B7\u30E3\u30C4”, category: “\u30C8\u30C3\u30D7\u30B9”, color: “#d0e8f5”, emoji: “\u{1F454}”, tags: [”\u304D\u308C\u3044\u3081”, “\u30AA\u30D5\u30A3\u30B9”] },
+{ id: 8, name: “\u30D7\u30EA\u30FC\u30C4\u30B9\u30AB\u30FC\u30C8”, category: “\u30DC\u30C8\u30E0\u30B9”, color: “#c9a0dc”, emoji: “\u{1F457}”, tags: [”\u30D5\u30A7\u30DF\u30CB\u30F3”, “\u304D\u308C\u3044\u3081”] }
+];
+const TRENDS = [
+{ id: 1, title: “\u3086\u308B\u30B7\u30EB\u30A8\u30C3\u30C8”, desc: “\u30AA\u30FC\u30D0\u30FC\u30B5\u30A4\u30BA\u306E\u30A2\u30A4\u30C6\u30E0\u3067\u4ECA\u5B63\u30C8\u30EC\u30F3\u30C9\u3092\u53D6\u308A\u5165\u308C\u3066”, tag: “2026SS”, color: “#f0e6d3”, icon: “\u{1F33F}” },
+{ id: 2, title: “\u30E2\u30CE\u30C8\u30FC\u30F3\u30B3\u30FC\u30C7”, desc: “\u767D\u30FB\u9ED2\u30FB\u30B0\u30EC\u30FC\u3067\u307E\u3068\u3081\u305F\u30B9\u30BF\u30A4\u30EA\u30C3\u30B7\u30E5\u306A\u7740\u3053\u306A\u3057”, tag: “\u5B9A\u756A”, color: “#e8e8e8”, icon: “\u{1F5A4}” },
+{ id: 3, title: “\u30C7\u30CB\u30E0on\u30C7\u30CB\u30E0”, desc: “\u540C\u7D20\u6750\u306E\u91CD\u306D\u7740\u304C\u304A\u3057\u3083\u308C\u4E0A\u7D1A\u8005\u306E\u8A3C”, tag: “\u4EBA\u6C17\u6025\u4E0A\u6607”, color: “#dce8f5”, icon: “\u2728” },
+{ id: 4, title: “\u30D0\u30A4\u30AA\u30EC\u30C3\u30C8\u30AB\u30E9\u30FC”, desc: “\u4ECA\u5B63\u6CE8\u76EE\u306E\u30D1\u30FC\u30D7\u30EB\u7CFB\u30AB\u30E9\u30FC\u3067\u500B\u6027\u3092\u6F14\u51FA”, tag: “2026SS”, color: “#ede0f5”, icon: “\u{1F49C}” },
+{ id: 5, title: “\u30EC\u30A4\u30E4\u30FC\u30C9\u30B9\u30BF\u30A4\u30EB”, desc: “\u91CD\u306D\u7740\u3067\u30DC\u30EA\u30E5\u30FC\u30E0\u3068\u6DF1\u307F\u3092\u51FA\u3059\u7740\u3053\u306A\u3057\u8853”, tag: “\u79CB\u51AC\u5148\u53D6\u308A”, color: “#f5ede0”, icon: “\u{1F342}” },
+{ id: 6, title: “Y2K\u30EA\u30D0\u30A4\u30D0\u30EB”, desc: “2000\u5E74\u4EE3\u30C6\u30A4\u30B9\u30C8\u3067\u4ECA\u3069\u304D\u306B\u30A2\u30C3\u30D7\u30C7\u30FC\u30C8”, tag: “\u30C8\u30EC\u30F3\u30C9”, color: “#fce4ec”, icon: “\u2B50” }
+];
+const COORD_SUGGESTIONS = [
+{
+id: 1,
+title: “\u30AB\u30D5\u30A7\u30C7\u30FC\u30C8\u98A8”,
+items: [”\u767D\u306E\u534A\u8896T\u30B7\u30E3\u30C4”, “\u30D7\u30EA\u30FC\u30C4\u30B9\u30AB\u30FC\u30C8”, “\u767D\u30B9\u30CB\u30FC\u30AB\u30FC”, “\u30EC\u30B6\u30FC\u30C8\u30FC\u30C8”],
+mood: “\u30D5\u30A7\u30DF\u30CB\u30F3”,
+color: “#fce4ec”,
+tip: “\u30B9\u30AB\u30FC\u30C8\u3068\u30D0\u30C3\u30B0\u306E\u30C8\u30FC\u30F3\u3092\u5408\u308F\u305B\u3066\u307E\u3068\u307E\u308A\u611FUP”
+},
+{
+id: 2,
+title: “\u4F11\u65E5\u30AB\u30B8\u30E5\u30A2\u30EB”,
+items: [”\u9577\u8896\u30C7\u30CB\u30E0\u30B8\u30E3\u30B1\u30C3\u30C8”, “\u767D\u306E\u534A\u8896T\u30B7\u30E3\u30C4”, “\u30D6\u30E9\u30C3\u30AF\u30B9\u30AD\u30CB\u30FC”, “\u767D\u30B9\u30CB\u30FC\u30AB\u30FC”],
+mood: “\u30AB\u30B8\u30E5\u30A2\u30EB”,
+color: “#e3f2fd”,
+tip: “\u30C7\u30CB\u30E0\xD7\u9ED2\u3067\u5F15\u304D\u7DE0\u307E\u3063\u305F\u30AB\u30B8\u30E5\u30A2\u30EB\u30B9\u30BF\u30A4\u30EB”
+},
+{
+id: 3,
+title: “\u30AA\u30D5\u30A3\u30B9\u304D\u308C\u3044\u3081”,
+items: [”\u9577\u8896\u30B9\u30C8\u30E9\u30A4\u30D7\u30B7\u30E3\u30C4”, “\u30D7\u30EA\u30FC\u30C4\u30B9\u30AB\u30FC\u30C8”, “\u30EC\u30B6\u30FC\u30C8\u30FC\u30C8”],
+mood: “\u304D\u308C\u3044\u3081”,
+color: “#e8f5e9”,
+tip: “\u30B9\u30C8\u30E9\u30A4\u30D7\xD7\u30D7\u30EA\u30FC\u30C4\u3067\u4E0A\u54C1\u306A\u5370\u8C61\u306B”
+}
+];
+const WEATHER = { temp: “22\xB0C”, desc: “\u6674\u308C”, icon: “\u2600\uFE0F”, advice: “\u65E5\u5DEE\u3057\u304C\u5F37\u3044\u306E\u3067\u8584\u624B\u306E\u7FBD\u7E54\u3092\u6301\u53C2\u3057\u3066” };
+function WeatherBadge() {
+return /* @**PURE** */ React.createElement(“div”, { style: {
+background: “linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)”,
+borderRadius: “16px”,
+padding: “12px 18px”,
+display: “flex”,
+alignItems: “center”,
+gap: “10px”,
+marginBottom: “20px”,
+boxShadow: “0 4px 15px rgba(252,182,159,0.3)”
+} }, /* @**PURE** */ React.createElement(“span”, { style: { fontSize: “28px” } }, WEATHER.icon), /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“div”, { style: { fontFamily: “‘Playfair Display’, serif”, fontSize: “20px”, fontWeight: “700”, color: “#5d3a1a” } }, WEATHER.temp, “ “, WEATHER.desc), /* @**PURE** */ React.createElement(“div”, { style: { fontSize: “12px”, color: “#8B5E3C”, marginTop: “2px” } }, WEATHER.advice)));
+}
+function isInCloset(itemName, closetItems = []) {
+const n = itemName.replace(/（半袖|長袖|七分袖|ノースリーブ|半袖|長袖）/g, “”).toLowerCase();
+return closetItems.some((c) => {
+const cn = c.name.toLowerCase();
+return cn.includes(n) || n.includes(cn) || n.split(/[・\s]/).some((word) => word.length >= 3 && cn.includes(word));
+});
+}
+function ItemTag({ label, inCloset }) {
+return inCloset ? /* @**PURE** */ React.createElement(“span”, { style: {
+background: “rgba(255,255,255,0.85)”,
+borderRadius: “12px”,
+padding: “4px 10px”,
+fontSize: “11px”,
+color: “#2a7a2a”,
+fontWeight: “600”,
+border: “1.5px solid rgba(60,180,60,0.4)”,
+display: “inline-flex”,
+alignItems: “center”,
+gap: “3px”
+} }, “\u2713 “, label) : /* @**PURE** */ React.createElement(“span”, { style: {
+background: “rgba(255,220,180,0.7)”,
+borderRadius: “12px”,
+padding: “4px 10px”,
+fontSize: “11px”,
+color: “#a05010”,
+fontWeight: “600”,
+border: “1.5px solid rgba(220,140,60,0.5)”,
+display: “inline-flex”,
+alignItems: “center”,
+gap: “3px”
+} }, “+ “, label);
+}
+function ClosetLegend() {
+return /* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, gap: “10px”, marginBottom: “10px”, flexWrap: “wrap” } }, /* @**PURE** */ React.createElement(“span”, { style: { fontSize: “11px”, color: “#2a7a2a”, display: “flex”, alignItems: “center”, gap: “4px” } }, /* @**PURE** */ React.createElement(“span”, { style: { background: “rgba(255,255,255,0.85)”, border: “1.5px solid rgba(60,180,60,0.4)”, borderRadius: “8px”, padding: “2px 8px”, fontWeight: “600” } }, “\u2713 \u30A2\u30A4\u30C6\u30E0”), “\u30AF\u30ED\u30FC\u30BC\u30C3\u30C8\u306B\u3042\u308A”), /* @**PURE** */ React.createElement(“span”, { style: { fontSize: “11px”, color: “#a05010”, display: “flex”, alignItems: “center”, gap: “4px” } }, /* @**PURE** */ React.createElement(“span”, { style: { background: “rgba(255,220,180,0.7)”, border: “1.5px solid rgba(220,140,60,0.5)”, borderRadius: “8px”, padding: “2px 8px”, fontWeight: “600” } }, “+ \u30A2\u30A4\u30C6\u30E0”), “\u8981\u8CFC\u5165”));
+}
+function CoordCard({ coord, onLike, liked, user, closetItems }) {
+return /* @**PURE** */ React.createElement(
+“div”,
+{
+style: {
+background: coord.color,
+borderRadius: “20px”,
+padding: “20px”,
+marginBottom: “16px”,
+position: “relative”,
+boxShadow: “0 4px 20px rgba(0,0,0,0.08)”,
+transition: “transform 0.2s”,
+cursor: “pointer”
+},
+onMouseEnter: (e) => e.currentTarget.style.transform = “translateY(-3px)”,
+onMouseLeave: (e) => e.currentTarget.style.transform = “translateY(0)”
+},
+/* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, justifyContent: “space-between”, alignItems: “flex-start”, marginBottom: “12px” } }, /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(“span”, { style: {
+background: “rgba(255,255,255,0.7)”,
+borderRadius: “20px”,
+padding: “3px 12px”,
+fontSize: “11px”,
+fontWeight: “600”,
+color: “#555”
+} }, coord.mood), /* @**PURE** */ React.createElement(“h3”, { style: { fontFamily: “‘Playfair Display’, serif”, fontSize: “20px”, margin: “8px 0 0”, color: “#2a2a2a” } }, coord.title)), /* @**PURE** */ React.createElement(“button”, { onClick: () => onLike(coord.id), style: {
+background: “none”,
+border: “none”,
+fontSize: “24px”,
+cursor: “pointer”,
+transition: “transform 0.2s”,
+transform: liked ? “scale(1.2)” : “scale(1)”
+} }, liked ? “\u2764\uFE0F” : “\u{1F90D}”)),
+/* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, gap: “12px”, alignItems: “flex-start”, marginBottom: “12px” } }, /* @**PURE** */ React.createElement(“div”, { style: { flexShrink: 0, background: “rgba(255,255,255,0.45)”, borderRadius: “14px”, padding: “6px” } }, /* @**PURE** */ React.createElement(FashionAvatar, { profile: user == null ? void 0 : user.profile, coordItems: coord.items, cardColor: coord.color })), /* @**PURE** */ React.createElement(“div”, { style: { flex: 1 } }, /* @**PURE** */ React.createElement(“div”, { style: { fontSize: “11px”, fontWeight: “700”, color: “#888”, marginBottom: “6px” } }, “\u30B3\u30FC\u30C7\u30A2\u30A4\u30C6\u30E0”), /* @**PURE** */ React.createElement(ClosetLegend, null), /* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, flexWrap: “wrap”, gap: “6px” } }, coord.items.map((item, i) => /* @**PURE** */ React.createElement(ItemTag, { key: i, label: item, inCloset: isInCloset(item, closetItems) }))))),
+/* @**PURE** */ React.createElement(“div”, { style: {
+background: “rgba(255,255,255,0.6)”,
+borderRadius: “12px”,
+padding: “10px 14px”,
+fontSize: “12px”,
+color: “#555”,
+display: “flex”,
+alignItems: “center”,
+gap: “6px”
+} }, /* @**PURE** */ React.createElement(“span”, null, “\u{1F4A1}”), “ “, coord.tip)
+);
+}
+const SKIN_TONES = {
+spring: “#f5c8a0”,
+// 明るい黄み肌
+summer: “#f0c8c0”,
+// ピンクがかった白肌
+autumn: “#d4956a”,
+// 健康的な黄み肌
+winter: “#f8dac8”
+// 明るく透明感のある肌
+};
+const HAIR_COLORS_MAP = {
+spring: “#c8903c”,
+// 明るいブラウン
+summer: “#8B6F6F”,
+// アッシュブラウン
+autumn: “#5a3820”,
+// ダークブラウン
+winter: “#1a1a1a”
+// ブラックorダークネイビー
+};
+const HAIR_LENGTH_PROPS = {
+\u30B7\u30E7\u30FC\u30C8: { len: 20, waviness: 0 },
+\u30DF\u30C7\u30A3\u30A2\u30E0: { len: 60, waviness: 1 },
+\u30ED\u30F3\u30B0: { len: 110, waviness: 2 },
+\u30D9\u30EA\u30FC\u30ED\u30F3\u30B0: { len: 150, waviness: 2 }
+};
+function guessColorFromItem(itemName) {
+const map = [
+{ keys: [”\u767D”, “\u30DB\u30EF\u30A4\u30C8”, “\u30A2\u30A4\u30DC\u30EA\u30FC”, “\u30AF\u30EA\u30FC\u30E0”], color: “#f5f5f0” },
+{ keys: [”\u9ED2”, “\u30D6\u30E9\u30C3\u30AF”, “\u30C0\u30FC\u30AF”], color: “#2a2a2a” },
+{ keys: [”\u30CD\u30A4\u30D3\u30FC”, “\u7D3A”], color: “#1a3a6e” },
+{ keys: [”\u30D6\u30EB\u30FC”, “\u9752”, “\u30C7\u30CB\u30E0”, “\u30B8\u30FC\u30F3\u30BA”], color: “#4a7fc1” },
+{ keys: [”\u30EC\u30C3\u30C9”, “\u8D64”, “\u30D0\u30FC\u30AC\u30F3\u30C7\u30A3”], color: “#c0392b” },
+{ keys: [”\u30D4\u30F3\u30AF”, “\u30B3\u30FC\u30E9\u30EB”, “\u30ED\u30FC\u30BA”, “\u30B5\u30FC\u30E2\u30F3”, “\u30D4\u30FC\u30C1”], color: “#f4a0b0” },
+{ keys: [”\u30D1\u30FC\u30D7\u30EB”, “\u7D2B”, “\u30E9\u30D9\u30F3\u30C0\u30FC”, “\u30D0\u30A4\u30AA\u30EC\u30C3\u30C8”], color: “#9b6dc0” },
+{ keys: [”\u30B0\u30EA\u30FC\u30F3”, “\u7DD1”, “\u30AB\u30FC\u30AD”, “\u30AA\u30EA\u30FC\u30D6”, “\u30BB\u30FC\u30B8”], color: “#6a9e6a” },
+{ keys: [”\u30A4\u30A8\u30ED\u30FC”, “\u9EC4”, “\u30DE\u30B9\u30BF\u30FC\u30C9”, “\u30EC\u30E2\u30F3”], color: “#e8c840” },
+{ keys: [”\u30AA\u30EC\u30F3\u30B8”, “\u30C6\u30E9\u30B3\u30C3\u30BF”], color: “#e07840” },
+{ keys: [”\u30D6\u30E9\u30A6\u30F3”, “\u8336”, “\u30C1\u30E7\u30B3”, “\u30AD\u30E3\u30E9\u30E1\u30EB”], color: “#8B5E3C” },
+{ keys: [”\u30D9\u30FC\u30B8\u30E5”, “\u30AD\u30E3\u30E1\u30EB”, “\u30CC\u30FC\u30C9”, “\u30B5\u30F3\u30C9”], color: “#c8a878” },
+{ keys: [”\u30B0\u30EC\u30FC”, “\u7070”], color: “#909090” }
+];
+const lower = itemName;
+for (const { keys, color } of map) {
+if (keys.some((k) => lower.includes(k))) return color;
+}
+return “#c0c0c0”;
+}
+function guessItemType(itemName) {
+if (/ワンピース|ドレス/.test(itemName)) return “dress”;
+if (/スカート|フレア|プリーツ|マキシ/.test(itemName)) return “skirt”;
+if (/コート|ジャケット|アウター|ブルゾン|カーディガン|ニット/.test(itemName)) return “outer”;
+if (/パンツ|デニム|スキニー|ジーンズ|ボトム|スラックス/.test(itemName)) return “pants”;
+if (/シューズ|スニーカー|パンプス|ブーツ|サンダル|靴/.test(itemName)) return “shoes”;
+if (/バッグ|トート|ショルダー|クラッチ|リュック/.test(itemName)) return “bag”;
+return “top”;
+}
+function FashionAvatar({ profile, coordItems, cardColor }) {
+var _a, _b, _c;
+const pc = (profile == null ? void 0 : profile.personalColor) || “spring”;
+const hairLen = (profile == null ? void 0 : profile.hairLength) || “\u30DF\u30C7\u30A3\u30A2\u30E0”;
+const height = parseFloat(profile == null ? void 0 : profile.height) || 158;
+const weight = parseFloat(profile == null ? void 0 : profile.weight) || 52;
+const skinColor = SKIN_TONES[pc];
+const hairColor = HAIR_COLORS_MAP[pc];
+const types = (coordItems || []).map((item) => ({
+type: guessItemType(item),
+color: guessColorFromItem(item)
+}));
+const topItem = types.find((t) => t.type === “top”);
+const outerItem = types.find((t) => t.type === “outer”);
+const btmItem = types.find((t) => t.type === “pants” || t.type === “skirt”);
+const dressItem = types.find((t) => t.type === “dress”);
+const shoeItem = types.find((t) => t.type === “shoes”);
+const bagItem = types.find((t) => t.type === “bag”);
+const topColor = (outerItem == null ? void 0 : outerItem.color) || (topItem == null ? void 0 : topItem.color) || “#d8d0c8”;
+const btmColor = (_b = (_a = btmItem == null ? void 0 : btmItem.color) != null ? _a : dressItem == null ? void 0 : dressItem.color) != null ? _b : “#5a7090”;
+const shoeColor = (shoeItem == null ? void 0 : shoeItem.color) || “#3a3028”;
+const hasDress = !!dressItem && !btmItem;
+const isSkirt = (btmItem == null ? void 0 : btmItem.type) === “skirt”;
+const hasOuter = !!outerItem;
+const legScale = Math.max(0.8, Math.min(1.3, (height - 158) * 0.014 + 1));
+const bmi = weight / (height / 100) ** 2;
+const bodyScale = bmi < 17 ? 0.82 : bmi < 19 ? 0.88 : bmi < 22 ? 1 : bmi < 26 ? 1.1 : 1.2;
+const x = 40;
+const hY = 16, hRx = 10, hRy = 12;
+const nkT = hY + hRy - 1, nkB = nkT + 9;
+const nkW = 4;
+const shY = nkB + 1;
+const shW = Math.round(18 * bodyScale);
+const buW = Math.round(13 * bodyScale);
+const waW = Math.round(9 * bodyScale);
+const hiW = Math.round(15 * bodyScale);
+const buY = shY + 18;
+const waY = buY + 18;
+const hiY = waY + 14;
+const crY = hiY + 7;
+const knY = crY + Math.round(44 * legScale);
+const anY = knY + Math.round(46 * legScale);
+const grY = anY + Math.round(14 * legScale);
+const knW = 6, anW = 3;
+const lc = “rgba(30,20,10,0.50)”;
+const sw = 0.8;
+const shadowColor = “rgba(0,0,0,0.10)”;
+const hairLengths = { \u30B7\u30E7\u30FC\u30C8: 0, \u30DF\u30C7\u30A3\u30A2\u30E0: 42, \u30ED\u30F3\u30B0: 85, \u30D9\u30EA\u30FC\u30ED\u30F3\u30B0: 130 };
+const hLen = (_c = hairLengths[hairLen]) != null ? _c : 42;
+const hairTop = `M${x - hRx - 1} ${hY - 2} Q${x - hRx - 3} ${hY - hRy - 3} ${x} ${hY - hRy - 4} Q${x + hRx + 3} ${hY - hRy - 3} ${x + hRx + 1} ${hY - 2} Z`;
+const hairSideL = hLen > 0 ? `M${x - hRx} ${hY + 2} Q${x - hRx - 6} ${hY + hLen * 0.45} ${x - hRx - 4} ${hY + hLen} Q${x - hRx - 1} ${hY + hLen + 5} ${x - hRx + 5} ${hY + hLen} Q${x - hRx - 1} ${hY + hLen * 0.45} ${x - hRx + 2} ${hY + 2} Z` : null;
+const hairSideR = hLen > 0 ? `M${x + hRx} ${hY + 2} Q${x + hRx + 6} ${hY + hLen * 0.45} ${x + hRx + 4} ${hY + hLen} Q${x + hRx + 1} ${hY + hLen + 5} ${x + hRx - 5} ${hY + hLen} Q${x + hRx + 1} ${hY + hLen * 0.45} ${x + hRx - 2} ${hY + 2} Z` : null;
+const bodyBase = `M${x - nkW} ${nkB} C${x - shW} ${shY - 2} ${x - buW - 2} ${buY - 4} ${x - waW} ${waY} L${x - waW} ${waY} L${x + waW} ${waY} C${x + buW + 2} ${buY - 4} ${x + shW} ${shY - 2} ${x + nkW} ${nkB} Z`;
+const topFill = `M${x - nkW} ${nkB + 2} L${x - shW} ${shY + 1} C${x - buW - 2} ${buY - 4} ${x - waW} ${waY - 6} ${x - waW} ${waY} L${x + waW} ${waY} C${x + waW} ${waY - 6} ${x + buW + 2} ${buY - 4} ${x + shW} ${shY + 1} L${x + nkW} ${nkB + 2} Q${x} ${nkB} ${x - nkW} ${nkB + 2} Z`;
+const isNoSleeve = (coordItems || []).some((i) => /ノースリーブ|キャミ|チューブ/.test(i));
+const isShortSleeve = !isNoSleeve && (coordItems || []).some((i) => /半袖|Tシャツ/.test(i) && !/長袖|七分袖/.test(i));
+const isSevenSleeve = !isNoSleeve && !isShortSleeve && (coordItems || []).some((i) => /七分袖/.test(i));
+const sleeveEndY = isNoSleeve ? shY + 2 : isShortSleeve ? shY + 14 : isSevenSleeve ? shY + 30 : waY;
+const sleeveL = isNoSleeve ? null : `M${x - shW} ${shY + 1} C${x - shW - 5} ${shY + 4} ${x - shW - 7} ${sleeveEndY - 4} ${x - shW - 5} ${sleeveEndY} L${x - shW - 1} ${sleeveEndY + 1} C${x - shW} ${sleeveEndY - 2} ${x - shW} ${shY + 5} ${x - shW + 2} ${shY + 3} Z`;
+const sleeveR = isNoSleeve ? null : `M${x + shW} ${shY + 1} C${x + shW + 5} ${shY + 4} ${x + shW + 7} ${sleeveEndY - 4} ${x + shW + 5} ${sleeveEndY} L${x + shW + 1} ${sleeveEndY + 1} C${x + shW} ${sleeveEndY - 2} ${x + shW} ${shY + 5} ${x + shW - 2} ${shY + 3} Z`;
+const outerBody = `M${x - nkW - 1} ${nkB + 1} L${x - shW - 3} ${shY} C${x - buW - 5} ${buY - 3} ${x - waW - 3} ${waY - 4} ${x - waW - 2} ${waY + 22} L${x + waW + 2} ${waY + 22} C${x + waW + 3} ${waY - 4} ${x + buW + 5} ${buY - 3} ${x + shW + 3} ${shY} L${x + nkW + 1} ${nkB + 1} Q${x} ${nkB - 1} ${x - nkW - 1} ${nkB + 1} Z`;
+const outerSleeveL = `M${x - shW - 3} ${shY} C${x - shW - 10} ${shY + 6} ${x - shW - 13} ${buY + 6} ${x - shW - 10} ${waY + 10} L${x - shW - 4} ${waY + 13} C${x - shW - 4} ${buY + 4} ${x - shW - 2} ${shY + 7} ${x - shW + 1} ${shY + 3} Z`;
+const outerSleeveR = `M${x + shW + 3} ${shY} C${x + shW + 10} ${shY + 6} ${x + shW + 13} ${buY + 6} ${x + shW + 10} ${waY + 10} L${x + shW + 4} ${waY + 13} C${x + shW + 4} ${buY + 4} ${x + shW + 2} ${shY + 7} ${x + shW - 1} ${shY + 3} Z`;
+const skirtFill = `M${x - waW - 1} ${waY} L${x - hiW - 12} ${anY - 6} L${x + hiW + 12} ${anY - 6} L${x + waW + 1} ${waY} Z`;
+const skirtHem = `M${x - hiW - 12} ${anY - 6} Q${x} ${anY} ${x + hiW + 12} ${anY - 6}`;
+const dressFill = `M${x - nkW} ${nkB + 2} L${x - shW} ${shY + 1} C${x - buW - 2} ${buY - 4} ${x - waW} ${waY - 6} ${x - hiW - 12} ${anY - 6} L${x + hiW + 12} ${anY - 6} C${x + waW} ${waY - 6} ${x + buW + 2} ${buY - 4} ${x + shW} ${shY + 1} L${x + nkW} ${nkB + 2} Q${x} ${nkB} ${x - nkW} ${nkB + 2} Z`;
+const dressHem = `M${x - hiW - 12} ${anY - 6} Q${x} ${anY} ${x + hiW + 12} ${anY - 6}`;
+const pantsBase = `M${x - waW} ${waY} L${x - hiW} ${hiY} C${x - hiW} ${hiY + 6} ${x - anW - 5} ${anY - 8} ${x - anW - 4} ${anY} L${x + anW + 4} ${anY} C${x + anW + 5} ${anY - 8} ${x + hiW} ${hiY + 6} ${x + hiW} ${hiY} L${x + waW} ${waY} Z`;
+const pantsSeam = `M${x} ${waY} C${x} ${hiY + 4} ${x} ${crY + 6} ${x - 1} ${anY}`;
+const pantsHemL = `M${x - anW - 4} ${anY} Q${x - 2} ${anY + 2} ${x - 1} ${anY}`;
+const pantsHemR = `M${x + anW + 4} ${anY} Q${x + 2} ${anY + 2} ${x + 1} ${anY}`;
+const shoeLPath = [
+`M${x - anW - 3} ${anY}`,
+`Q${x - anW - 5} ${anY + 4} ${x - anW - 11} ${grY - 4}`,
+// 爪先へ
+`Q${x - anW - 12} ${grY} ${x - 3} ${grY}`,
+// 爪先底
+`L${x - 2} ${anY + 4}`,
+// インソール前
+`L${x - 2} ${grY - 4}`,
+// ヒール前面
+`L${x - anW - 4} ${grY - 4}`,
+// ヒール底
+`L${x - anW - 4} ${anY} Z`
+// ヒール後面
+].join(” “);
+const shoeRPath = [
+`M${x + anW + 3} ${anY}`,
+`Q${x + anW + 5} ${anY + 4} ${x + anW + 11} ${grY - 4}`,
+`Q${x + anW + 12} ${grY} ${x + 3} ${grY}`,
+`L${x + 2} ${anY + 4}`,
+`L${x + 2} ${grY - 4}`,
+`L${x + anW + 4} ${grY - 4}`,
+`L${x + anW + 4} ${anY} Z`
+].join(” “);
+const bagPath = bagItem ? `M${x + shW + 5} ${waY + 4} L${x + shW + 17} ${waY + 4} Q${x + shW + 19} ${waY + 4} ${x + shW + 19} ${waY + 6} L${x + shW + 19} ${waY + 22} Q${x + shW + 19} ${waY + 24} ${x + shW + 17} ${waY + 24} L${x + shW + 5} ${waY + 24} Q${x + shW + 3} ${waY + 24} ${x + shW + 3} ${waY + 22} L${x + shW + 3} ${waY + 6} Q${x + shW + 3} ${waY + 4} ${x + shW + 5} ${waY + 4} Z` : null;
+const bagStrap = bagItem ? `M${x + shW} ${shY + 10} C${x + shW + 2} ${buY} ${x + shW + 3} ${waY} ${x + shW + 5} ${waY + 4}` : null;
+const totalH = grY + 10;
+return /* @**PURE** */ React.createElement(
+“svg”,
+{
+viewBox: `0 0 80 ${totalH}`,
+width: “95”,
+height: Math.min(330, Math.max(250, totalH)),
+style: { display: “block” }
+},
+/* @**PURE** */ React.createElement(“rect”, { width: “80”, height: totalH, fill: cardColor, opacity: “0.28”, rx: “10” }),
+hairSideL && /* @**PURE** */ React.createElement(“path”, { d: hairSideL, fill: hairColor, opacity: “0.88” }),
+hairSideR && /* @**PURE** */ React.createElement(“path”, { d: hairSideR, fill: hairColor, opacity: “0.88” }),
+/* @**PURE** */ React.createElement(“path”, { d: bodyBase, fill: skinColor }),
+hasDress ? /* @**PURE** */ React.createElement(React.Fragment, null, /* @**PURE** */ React.createElement(“path”, { d: sleeveL, fill: btmColor, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“path”, { d: sleeveR, fill: btmColor, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“path”, { d: dressFill, fill: btmColor, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“path”, { d: dressHem, stroke: lc, strokeWidth: sw + 0.2, fill: “none”, opacity: “0.4” })) : isSkirt ? /* @**PURE** */ React.createElement(React.Fragment, null, /* @**PURE** */ React.createElement(“path”, { d: sleeveL, fill: topColor, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“path”, { d: sleeveR, fill: topColor, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“path”, { d: topFill, fill: topColor, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“path”, { d: skirtFill, fill: btmColor }), /* @**PURE** */ React.createElement(“path”, { d: skirtFill, fill: “none”, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“path”, { d: skirtHem, stroke: lc, strokeWidth: sw + 0.2, fill: “none”, opacity: “0.4” }), /* @**PURE** */ React.createElement(
+“rect”,
+{
+x: x - waW - 1,
+y: waY - 2,
+width: (waW + 1) * 2,
+height: 5,
+rx: 2,
+fill: btmColor,
+stroke: lc,
+strokeWidth: sw
+}
+)) : /* @**PURE** */ React.createElement(React.Fragment, null, /* @**PURE** */ React.createElement(“path”, { d: pantsBase, fill: btmColor, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“path”, { d: pantsSeam, stroke: lc, strokeWidth: 0.6, fill: “none”, opacity: “0.5” }), /* @**PURE** */ React.createElement(“path”, { d: pantsHemL, stroke: lc, strokeWidth: 0.6, fill: “none”, opacity: “0.4” }), /* @**PURE** */ React.createElement(“path”, { d: pantsHemR, stroke: lc, strokeWidth: 0.6, fill: “none”, opacity: “0.4” }), /* @**PURE** */ React.createElement(“path”, { d: topFill, fill: topColor }), /* @**PURE** */ React.createElement(“path”, { d: sleeveL, fill: topColor }), /* @**PURE** */ React.createElement(“path”, { d: sleeveR, fill: topColor }), /* @**PURE** */ React.createElement(“path”, { d: topFill, fill: “none”, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“path”, { d: sleeveL, fill: “none”, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“path”, { d: sleeveR, fill: “none”, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“path”, { d: `M${x - waW} ${waY} L${x + waW} ${waY}`, stroke: lc, strokeWidth: sw, fill: “none” })),
+hasOuter && /* @**PURE** */ React.createElement(React.Fragment, null, /* @**PURE** */ React.createElement(“path”, { d: outerSleeveL, fill: outerItem.color }), /* @**PURE** */ React.createElement(“path”, { d: outerSleeveR, fill: outerItem.color }), /* @**PURE** */ React.createElement(“path”, { d: outerBody, fill: outerItem.color }), /* @**PURE** */ React.createElement(“path”, { d: outerSleeveL, fill: “none”, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“path”, { d: outerSleeveR, fill: “none”, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“path”, { d: outerBody, fill: “none”, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(“line”, { x1: x, y1: nkB + 4, x2: x, y2: waY + 20, stroke: lc, strokeWidth: 0.6, opacity: “0.5” })),
+bagItem && bagPath && /* @**PURE** */ React.createElement(React.Fragment, null, /* @**PURE** */ React.createElement(“path”, { d: bagStrap, stroke: lc, strokeWidth: 0.8, fill: “none” }), /* @**PURE** */ React.createElement(“path”, { d: bagPath, fill: bagItem.color, stroke: lc, strokeWidth: sw }), /* @**PURE** */ React.createElement(
+“line”,
+{
+x1: x + shW + 5,
+y1: waY + 14,
+x2: x + shW + 19,
+y2: waY + 14,
+stroke: lc,
+strokeWidth: 0.5,
+opacity: “0.5”
+}
+)),
+/* @**PURE** */ React.createElement(“path”, { d: shoeLPath, fill: shoeColor, stroke: lc, strokeWidth: sw }),
+/* @**PURE** */ React.createElement(“path”, { d: shoeRPath, fill: shoeColor, stroke: lc, strokeWidth: sw }),
+/* @**PURE** */ React.createElement(
+“path”,
+{
+d: `M${x - anW - 10} ${grY - 5} Q${x - anW - 7} ${grY - 6} ${x - anW - 4} ${grY - 5}`,
+stroke: “rgba(255,255,255,0.4)”,
+strokeWidth: 0.8,
+fill: “none”
+}
+),
+/* @**PURE** */ React.createElement(
+“path”,
+{
+d: `M${x + anW + 10} ${grY - 5} Q${x + anW + 7} ${grY - 6} ${x + anW + 4} ${grY - 5}`,
+stroke: “rgba(255,255,255,0.4)”,
+strokeWidth: 0.8,
+fill: “none”
+}
+),
+/* @**PURE** */ React.createElement(
+“path”,
+{
+d: `M${x - nkW + 1} ${nkT} L${x - nkW} ${nkB} L${x + nkW} ${nkB} L${x + nkW - 1} ${nkT} Z`,
+fill: skinColor,
+stroke: lc,
+strokeWidth: sw * 0.6
+}
+),
+/* @**PURE** */ React.createElement(
+“path”,
+{
+d: `M${x - shW + 2} ${shY} C${x - buW - 2} ${buY - 2} ${x - waW} ${waY - 4} ${x - waW} ${waY}`,
+stroke: “rgba(0,0,0,0.08)”,
+strokeWidth: 2.5,
+fill: “none”
+}
+),
+/* @**PURE** */ React.createElement(
+“path”,
+{
+d: `M${x + shW - 2} ${shY} C${x + buW + 2} ${buY - 2} ${x + waW} ${waY - 4} ${x + waW} ${waY}`,
+stroke: “rgba(0,0,0,0.08)”,
+strokeWidth: 2.5,
+fill: “none”
+}
+),
+/* @**PURE** */ React.createElement(“ellipse”, { cx: x, cy: hY, rx: hRx, ry: hRy, fill: skinColor, stroke: lc, strokeWidth: sw }),
+/* @**PURE** */ React.createElement(“path”, { d: hairTop, fill: hairColor, stroke: lc, strokeWidth: sw }),
+/* @**PURE** */ React.createElement(
+“text”,
+{
+x,
+y: totalH - 1,
+textAnchor: “middle”,
+fontSize: “5.5”,
+fill: “rgba(0,0,0,0.25)”,
+fontFamily: “sans-serif”
+},
+height,
+“cm”
+)
+);
+}
+const PC_COLORS = {
+spring: “\u660E\u308B\u304F\u6696\u304B\u307F\u306E\u3042\u308B\u30A4\u30A8\u30D9\u6625\u30AB\u30E9\u30FC\uFF08\u30B3\u30FC\u30E9\u30EB\u3001\u30D4\u30FC\u30C1\u3001\u30A2\u30A4\u30DC\u30EA\u30FC\u3001\u30AD\u30E3\u30E1\u30EB\u306A\u3069\uFF09\u304C\u4F3C\u5408\u3046”,
+summer: “\u67D4\u3089\u304B\u304F\u6DBC\u3057\u3052\u306A\u30D6\u30EB\u30D9\u590F\u30AB\u30E9\u30FC\uFF08\u30E9\u30D9\u30F3\u30C0\u30FC\u3001\u30DA\u30FC\u30EB\u30D6\u30EB\u30FC\u3001\u30ED\u30FC\u30BA\u30B0\u30EC\u30FC\u306A\u3069\uFF09\u304C\u4F3C\u5408\u3046”,
+autumn: “\u6DF1\u307F\u306E\u3042\u308B\u6E29\u304B\u3044\u30A4\u30A8\u30D9\u79CB\u30AB\u30E9\u30FC\uFF08\u30C6\u30E9\u30B3\u30C3\u30BF\u3001\u30AB\u30FC\u30AD\u3001\u30DE\u30B9\u30BF\u30FC\u30C9\u3001\u30D6\u30E9\u30A6\u30F3\u306A\u3069\uFF09\u304C\u4F3C\u5408\u3046”,
+winter: “\u306F\u3063\u304D\u308A\u3057\u305F\u30D6\u30EB\u30D9\u51AC\u30AB\u30E9\u30FC\uFF08\u30ED\u30A4\u30E4\u30EB\u30D6\u30EB\u30FC\u3001\u30D0\u30FC\u30AC\u30F3\u30C7\u30A3\u3001\u30D4\u30E5\u30A2\u30DB\u30EF\u30A4\u30C8\u3001\u30D6\u30E9\u30C3\u30AF\u306A\u3069\uFF09\u304C\u4F3C\u5408\u3046”
+};
+const PC_LABEL = { spring: “\u30A4\u30A8\u30D9\u6625”, summer: “\u30D6\u30EB\u30D9\u590F”, autumn: “\u30A4\u30A8\u30D9\u79CB”, winter: “\u30D6\u30EB\u30D9\u51AC” };
+const HAIR_LABEL = { \u30B7\u30E7\u30FC\u30C8: “\u30B7\u30E7\u30FC\u30C8\u30D8\u30A2”, \u30DF\u30C7\u30A3\u30A2\u30E0: “\u30DF\u30C7\u30A3\u30A2\u30E0\u30D8\u30A2”, \u30ED\u30F3\u30B0: “\u30ED\u30F3\u30B0\u30D8\u30A2”, \u30D9\u30EA\u30FC\u30ED\u30F3\u30B0: “\u30D9\u30EA\u30FC\u30ED\u30F3\u30B0” };
+const SITUATIONS = [”\u30C7\u30FC\u30C8”, “\u30AA\u30D5\u30A3\u30B9”, “\u30AB\u30B8\u30E5\u30A2\u30EB\u304A\u51FA\u304B\u3051”, “\u53CB\u9054\u3068\u30E9\u30F3\u30C1”, “\u8CB7\u3044\u7269”, “\u65C5\u884C”, “\u7279\u5225\u306A\u30C7\u30A3\u30CA\u30FC”, “\u30B9\u30DD\u30FC\u30C4\u30FB\u30A2\u30A6\u30C8\u30C9\u30A2”];
+const WEATHERS = [
+{ label: “\u2600\uFE0F \u6674\u308C”, value: “\u6674\u308C\u3001\u6C17\u6E2922\u5EA6”, temp: “22\xB0C” },
+{ label: “\u{1F324} \u66C7\u308A”, value: “\u66C7\u308A\u3001\u6C17\u6E2918\u5EA6”, temp: “18\xB0C” },
+{ label: “\u{1F327} \u96E8”, value: “\u96E8\u3001\u6C17\u6E2916\u5EA6”, temp: “16\xB0C” },
+{ label: “\u2744\uFE0F \u5BD2\u3044”, value: “\u6674\u308C\u3001\u6C17\u6E298\u5EA6\u306E\u5BD2\u3044\u65E5”, temp: “8\xB0C” },
+{ label: “\u{1F525} \u6691\u3044”, value: “\u6674\u308C\u3001\u6C17\u6E2932\u5EA6\u306E\u731B\u6691\u65E5”, temp: “32\xB0C” }
+];
+const DEMO_RESULTS = [
+{
+title: “\u6625\u8272\u30AB\u30D5\u30A7\u30C7\u30FC\u30C8”,
+mood: “\u30D5\u30A7\u30DF\u30CB\u30F3”,
+items: [”\u30B3\u30FC\u30E9\u30EB\u30D4\u30F3\u30AF\u306E\u534A\u8896\u30D6\u30E9\u30A6\u30B9”, “\u30A2\u30A4\u30DC\u30EA\u30FC\u306E\u30D5\u30EC\u30A2\u30B9\u30AB\u30FC\u30C8”, “\u30D9\u30FC\u30B8\u30E5\u306E\u30B5\u30F3\u30C0\u30EB”, “\u30DF\u30CB\u30AB\u30B4\u30D0\u30C3\u30B0”],
+colorPoint: “\u30A4\u30A8\u30D9\u6625\u306E\u5F97\u610F\u306A\u30B3\u30FC\u30E9\u30EB\u30D4\u30F3\u30AF\u3092\u30C8\u30C3\u30D7\u30B9\u306B\u53D6\u308A\u5165\u308C\u3001\u30A2\u30A4\u30DC\u30EA\u30FC\u3067\u660E\u308B\u304F\u307E\u3068\u3081\u307E\u3057\u305F\u3002\u808C\u306E\u30C4\u30E4\u611F\u304C\u5F15\u304D\u7ACB\u3064\u914D\u8272\u3067\u3059\u3002”,
+tip: “158cm\u306E\u8EAB\u9577\u3092\u6D3B\u304B\u3059\u305F\u3081\u30B9\u30AB\u30FC\u30C8\u4E08\u306F\u3072\u3056\u4E0B10cm\u304C\u25CE\u3002\u30D0\u30C3\u30B0\u306F\u5C0F\u3076\u308A\u306B\u3057\u3066\u8996\u7DDA\u3092\u4E0A\u306B\u5F15\u304D\u4E0A\u3052\u3066\u3002”,
+reason: “\u8EAB\u9577158cm\u30FB\u30A4\u30A8\u30D9\u6625\u30BF\u30A4\u30D7\u306B\u6700\u9069\u306A\u660E\u308B\u3044\u30C8\u30FC\u30F3\u306E\u30B3\u30FC\u30C7\u3067\u3059\u3002\u30ED\u30F3\u30B0\u30D8\u30A2\u3068\u30D5\u30EC\u30A2\u30B9\u30AB\u30FC\u30C8\u306E\u7D44\u307F\u5408\u308F\u305B\u3067\u30A8\u30EC\u30AC\u30F3\u30C8\u306A\u5370\u8C61\u306B\u3002”
+},
+{
+title: “\u3053\u306A\u308C\u30AB\u30B8\u30E5\u30A2\u30EB”,
+mood: “\u30AB\u30B8\u30E5\u30A2\u30EB”,
+items: [”\u30AD\u30E3\u30E1\u30EB\u306E\u9577\u8896\u30CB\u30C3\u30C8\u30C8\u30C3\u30D7\u30B9”, “\u30DB\u30EF\u30A4\u30C8\u30C7\u30CB\u30E0”, “\u30B9\u30CB\u30FC\u30AB\u30FC”, “\u30B7\u30E7\u30EB\u30C0\u30FC\u30D0\u30C3\u30B0”],
+colorPoint: “\u30A4\u30A8\u30D9\u6625\u306E\u5F97\u610F\u306A\u30AD\u30E3\u30E1\u30EB\u3092\u30E1\u30A4\u30F3\u30AB\u30E9\u30FC\u306B\u3002\u30DB\u30EF\u30A4\u30C8\u30C7\u30CB\u30E0\u3067\u8EFD\u3084\u304B\u3055\u3092\u30D7\u30E9\u30B9\u3057\u305F\u6625\u3089\u3057\u3044\u30B3\u30FC\u30C7\u3002”,
+tip: “\u30CB\u30C3\u30C8\u3092\u30C7\u30CB\u30E0\u306B\u30BF\u30C3\u30AF\u30A4\u30F3\u3059\u308B\u3068\u30A6\u30A8\u30B9\u30C8\u4F4D\u7F6E\u304C\u9AD8\u304F\u898B\u3048\u3066\u30B9\u30BF\u30A4\u30EB\u30A2\u30C3\u30D7\u3002\u30B9\u30CB\u30FC\u30AB\u30FC\u306F\u767D\u3067\u307E\u3068\u3081\u3066\u3059\u3063\u304D\u308A\u3068\u3002”,
+reason: “\u4F53\u578B\u306E\u30D0\u30E9\u30F3\u30B9\u3092\u6574\u3048\u308B\u30BF\u30C3\u30AF\u30A4\u30F3\u30B9\u30BF\u30A4\u30EB\u304C\u25CE\u3002\u30AD\u30E3\u30E1\u30EB\u306F\u30A4\u30A8\u30D9\u6625\u306E\u808C\u8272\u3092\u660E\u308B\u304F\u898B\u305B\u308B\u5F97\u610F\u30AB\u30E9\u30FC\u3067\u3059\u3002”
+},
+{
+title: “\u4E0A\u54C1\u30E9\u30F3\u30C1\u30B9\u30BF\u30A4\u30EB”,
+mood: “\u304D\u308C\u3044\u3081”,
+items: [”\u30D4\u30FC\u30C1\u306E\u534A\u8896\u30B7\u30E3\u30C4\u30EF\u30F3\u30D4\u30FC\u30B9”, “\u30CC\u30FC\u30C9\u30D1\u30F3\u30D7\u30B9”, “\u30C1\u30A7\u30FC\u30F3\u30D0\u30C3\u30B0”],
+colorPoint: “\u30D4\u30FC\u30C1\u30AB\u30E9\u30FC\u306F\u30A4\u30A8\u30D9\u6625\u306E\u6700\u5F97\u610F\u8272\u3002\u30EF\u30F3\u30D4\u30FC\u30B91\u679A\u3067\u30B3\u30FC\u30C7\u304C\u5B8C\u6210\u3057\u3001\u304D\u308C\u3044\u3081\u306A\u5370\u8C61\u3092\u7C21\u5358\u306B\u6F14\u51FA\u3067\u304D\u307E\u3059\u3002”,
+tip: “\u30CC\u30FC\u30C9\u30D1\u30F3\u30D7\u30B9\u3067\u8DB3\u3092\u9577\u304F\u898B\u305B\u3066\u3002\u30C1\u30A7\u30FC\u30F3\u30D0\u30C3\u30B0\u304C\u30C9\u30EC\u30B9\u30A2\u30C3\u30D7\u52B9\u679C\u3092\u9AD8\u3081\u3001\u30E9\u30F3\u30C1\u306B\u3074\u3063\u305F\u308A\u306E\u4E0A\u54C1\u3055\u306B\u3002”,
+reason: “\u30EF\u30F3\u30D4\u30FC\u30B9\u306F\u8EAB\u9577158cm\u306E\u30D0\u30E9\u30F3\u30B9\u3092\u3088\u304F\u898B\u305B\u308B\u30B7\u30EB\u30A8\u30C3\u30C8\u3002\u30ED\u30F3\u30B0\u30D8\u30A2\u3068\u306E\u76F8\u6027\u3082\u629C\u7FA4\u3067\u3059\u3002”
+}
+];
+function AICoordSection({ user, closetItems }) {
+const [situation, setSituation] = useState(”\u30C7\u30FC\u30C8”);
+const [weather, setWeather] = useState(WEATHERS[0]);
+const [results, setResults] = useState(DEMO_RESULTS);
+const [loading, setLoading] = useState(false);
+const [activePattern, setActivePattern] = useState(0);
+const [isDemo, setIsDemo] = useState(true);
+const profile = user == null ? void 0 : user.profile;
+const hasProfile = profile && profile.height && profile.personalColor;
+const buildPrompt = () => {
+const age = (profile == null ? void 0 : profile.birthdate) ? Math.floor((Date.now() - new Date(profile.birthdate)) / (365.25 * 24 * 3600 * 1e3)) : null;
+const profileDesc = hasProfile ? `\u3010\u30E6\u30FC\u30B6\u30FC\u60C5\u5831\u3011
+
+- \u5E74\u9F62: ${age}\u6B73
+- \u8EAB\u9577: ${profile.height}cm / \u4F53\u91CD: ${profile.weight}kg
+- \u9AEA\u306E\u9577\u3055: ${HAIR_LABEL[profile.hairLength] || profile.hairLength}
+- \u30D1\u30FC\u30BD\u30CA\u30EB\u30AB\u30E9\u30FC: ${PC_LABEL[profile.personalColor]}\uFF08${PC_COLORS[profile.personalColor]}\uFF09
+- \u9AA8\u683C\u30BF\u30A4\u30D7: ${{ straight: “\u30B9\u30C8\u30EC\u30FC\u30C8\uFF08\u30B7\u30F3\u30D7\u30EB\u3067\u30D5\u30A3\u30C3\u30C8\u611F\u306E\u3042\u308B\u670D\u304C\u5F97\u610F\uFF09”, wave: “\u30A6\u30A7\u30FC\u30D6\uFF08\u3075\u3093\u308F\u308A\u67D4\u3089\u304B\u30FB\u30EC\u30A4\u30E4\u30FC\u30C9\u304C\u5F97\u610F\uFF09”, natural: “\u30CA\u30C1\u30E5\u30E9\u30EB\uFF08\u3086\u3063\u305F\u308A\u30FB\u30AA\u30FC\u30D0\u30FC\u30B5\u30A4\u30BA\u304C\u5F97\u610F\uFF09” }[profile.skeletonType] || profile.skeletonType}`: "\u3010\u30E6\u30FC\u30B6\u30FC\u60C5\u5831\u3011\u672A\u767B\u9332\uFF08\u4E00\u822C\u7684\u306A\u63D0\u6848\u3092\u3057\u3066\u304F\u3060\u3055\u3044\uFF09"; return`${profileDesc}
+  \u3010\u5929\u6C17\u30FB\u6C17\u6E29\u3011${weather.value}
+  \u3010\u30B7\u30C1\u30E5\u30A8\u30FC\u30B7\u30E7\u30F3\u3011${situation || “\u30AB\u30B8\u30E5\u30A2\u30EB\u306A\u304A\u51FA\u304B\u3051”}
+
+\u4E0A\u8A18\u306E\u60C5\u5831\u3092\u5143\u306B\u3001\u3053\u306E\u30E6\u30FC\u30B6\u30FC\u306B\u6700\u9069\u306A\u30B3\u30FC\u30C7\u30923\u30D1\u30BF\u30FC\u30F3\u63D0\u6848\u3057\u3066\u304F\u3060\u3055\u3044\u3002
+\u5FC5\u305A\u4EE5\u4E0B\u306EJSON\u5F62\u5F0F\u306E\u307F\u3067\u8FD4\u7B54\u3057\u3066\u304F\u3060\u3055\u3044\uFF08\u4ED6\u306E\u30C6\u30AD\u30B9\u30C8\u4E00\u5207\u4E0D\u8981\uFF09:
+[
+{
+“title”: “\u30B3\u30FC\u30C7\u540D”,
+“mood”: “\u96F0\u56F2\u6C17\u30BF\u30B0”,
+“items”: [”\u30A2\u30A4\u30C6\u30E01\uFF08\u5FC5\u305A\u534A\u8896\u30FB\u9577\u8896\u30FB\u30CE\u30FC\u30B9\u30EA\u30FC\u30D6\u306A\u3069\u8896\u306E\u9577\u3055\u3092\u660E\u8A18\uFF09”, “\u30A2\u30A4\u30C6\u30E02”, “\u30A2\u30A4\u30C6\u30E03”],
+“colorPoint”: “\u30D1\u30FC\u30BD\u30CA\u30EB\u30AB\u30E9\u30FC\u3092\u6D3B\u304B\u3057\u305F\u30DD\u30A4\u30F3\u30C8”,
+“tip”: “\u30B9\u30BF\u30A4\u30EA\u30F3\u30B0\u306E\u30B3\u30C4”,
+“reason”: “\u3053\u306E\u30E6\u30FC\u30B6\u30FC\u306E\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u306B\u5408\u3046\u7406\u7531\uFF08\u8EAB\u9577\u30FB\u4F53\u578B\u30FB\u30D1\u30FC\u30BD\u30CA\u30EB\u30AB\u30E9\u30FC\u3092\u8E0F\u307E\u3048\u3066\uFF09”
+}
+]
+\u203Bitems\u306E\u30C8\u30C3\u30D7\u30B9\u30FB\u30EF\u30F3\u30D4\u30FC\u30B9\u30FB\u30A2\u30A6\u30BF\u30FC\u306B\u306F\u5FC5\u305A\u300C\u534A\u8896\u300D\u300C\u9577\u8896\u300D\u300C\u4E03\u5206\u8896\u300D\u300C\u30CE\u30FC\u30B9\u30EA\u30FC\u30D6\u300D\u306E\u3044\u305A\u308C\u304B\u3092\u542B\u3081\u308B\u3053\u3068`; }; const handleGenerate = async () => { var _a, _b; setLoading(true); setResults(null); setActivePattern(0); setIsDemo(false); try { const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1500, system: "\u3042\u306A\u305F\u306F\u30D7\u30ED\u306E\u30D1\u30FC\u30BD\u30CA\u30EB\u30B9\u30BF\u30A4\u30EA\u30B9\u30C8\u3067\u3059\u3002\u30E6\u30FC\u30B6\u30FC\u306E\u4F53\u578B\u30FB\u30D1\u30FC\u30BD\u30CA\u30EB\u30AB\u30E9\u30FC\u30FB\u9AEA\u578B\u3092\u6DF1\u304F\u7406\u89E3\u3057\u3001\u305D\u306E\u4EBA\u306B\u672C\u5F53\u306B\u4F3C\u5408\u3046\u30B3\u30FC\u30C7\u3092\u63D0\u6848\u3057\u307E\u3059\u3002\u5FC5\u305AJSON\u5F62\u5F0F\u306E\u307F\u3067\u8FD4\u7B54\u3057\u3066\u304F\u3060\u3055\u3044\u3002", messages: [{ role: "user", content: buildPrompt() }] }) }); const data = await response.json(); const text = ((_b = (_a = data.content) == null ? void 0 : _a.find((b) => b.type === "text")) == null ? void 0 : _b.text) || "[]"; const clean = text.replace(/\x60\x60\x60json|\x60\x60\x60/g, "").trim(); const parsed = JSON.parse(clean); setResults(parsed); } catch (e) { setResults([{ title: "\u30A8\u30E9\u30FC", mood: "-", items: [], colorPoint: "", tip: "\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044", reason: "" }]); } setLoading(false); }; const CARD_COLORS = ["#fce4ec", "#e3f2fd", "#e8f5e9"]; const MOOD_COLORS = ["#e91e63", "#1976d2", "#388e3c"]; return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "24px" } }, /* @__PURE__ */ React.createElement("div", { style: { background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", borderRadius: "20px", padding: "20px", marginBottom: "14px", color: "white" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Playfair Display', serif", fontSize: "18px", fontWeight: "700", marginBottom: "4px" } }, "\u2728 AI\u30D1\u30FC\u30BD\u30CA\u30EB\u30B9\u30BF\u30A4\u30EA\u30B9\u30C8"), hasProfile ? /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", opacity: 0.85 } }, PC_LABEL[profile.personalColor], " \xB7 ", profile.height, "cm \xB7 ", HAIR_LABEL[profile.hairLength], profile.skeletonType ? ` \xB7 \u9AA8\u683C${{ straight: “\u30B9\u30C8\u30EC\u30FC\u30C8”, wave: “\u30A6\u30A7\u30FC\u30D6”, natural: “\u30CA\u30C1\u30E5\u30E9\u30EB” }[profile.skeletonType]}`: "", " \u306E\u3042\u306A\u305F\u3078") : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", opacity: 0.75 } }, "\u767B\u9332\u3059\u308B\u3068\u3088\u308A\u30D1\u30FC\u30BD\u30CA\u30EB\u306A\u63D0\u6848\u304C\u5C4A\u304D\u307E\u3059")), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", fontWeight: "700", color: "#555", marginBottom: "8px" } }, "\u4ECA\u65E5\u306E\u5929\u6C17"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px" } }, WEATHERS.map((w) => /* @__PURE__ */ React.createElement("button", { key: w.value, onClick: () => setWeather(w), style: { padding: "8px 14px", borderRadius: "20px", border: "2px solid", borderColor: weather.value === w.value ? "#667eea" : "#e0e0e0", background: weather.value === w.value ? "#ede9ff" : "white", color: weather.value === w.value ? "#5c35d4" : "#666", fontWeight: "600", fontSize: "12px", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'Noto Sans JP', sans-serif", transition: "all 0.15s" } }, w.label, " ", w.temp)))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", fontWeight: "700", color: "#555", marginBottom: "8px" } }, "\u30B7\u30C1\u30E5\u30A8\u30FC\u30B7\u30E7\u30F3"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap" } }, SITUATIONS.map((s) => /* @__PURE__ */ React.createElement("button", { key: s, onClick: () => setSituation(situation === s ? "" : s), style: { padding: "7px 14px", borderRadius: "20px", border: "2px solid", borderColor: situation === s ? "#9b59b6" : "#e0e0e0", background: situation === s ? "#f5f0ff" : "white", color: situation === s ? "#9b59b6" : "#666", fontWeight: "600", fontSize: "12px", cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif", transition: "all 0.15s" } }, s)))), /* @__PURE__ */ React.createElement("button", { onClick: handleGenerate, disabled: loading, style: { width: "100%", padding: "15px", borderRadius: "16px", border: "none", background: loading ? "#ccc" : "linear-gradient(135deg, #667eea, #9b59b6)", color: "white", fontSize: "15px", fontWeight: "700", cursor: loading ? "default" : "pointer", fontFamily: "'Noto Sans JP', sans-serif", boxShadow: loading ? "none" : "0 4px 20px rgba(155,89,182,0.35)", transition: "all 0.2s" } }, loading ? "\u{1F300} \u30B3\u30FC\u30C7\u3092\u8003\u3048\u3066\u3044\u307E\u3059\u2026" : "\u{1F3A8} 3\u30D1\u30BF\u30FC\u30F3\u63D0\u6848\u3057\u3066\u3082\u3089\u3046"), results && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "20px" } }, isDemo && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", background: "#fff8e1", borderRadius: "12px", padding: "10px 14px", marginBottom: "12px", border: "1.5px solid #ffe082" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "16px" } }, "\u{1F440}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#795548" } }, /* @__PURE__ */ React.createElement("strong", null, "\u30C7\u30E2\u8868\u793A\u4E2D"), "\u3000\u5B9F\u969B\u306E\u63D0\u6848\u306F\u30DC\u30BF\u30F3\u3092\u62BC\u3059\u3068AI\u304C\u751F\u6210\u3057\u307E\u3059")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", marginBottom: "14px" } }, results.map((r, i) => /* @__PURE__ */ React.createElement("button", { key: i, onClick: () => setActivePattern(i), style: { flex: 1, padding: "8px 4px", borderRadius: "12px", border: "2px solid", borderColor: activePattern === i ? MOOD_COLORS[i] : "#e0e0e0", background: activePattern === i ? CARD_COLORS[i] : "white", color: activePattern === i ? MOOD_COLORS[i] : "#aaa", fontWeight: "700", fontSize: "11px", cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif", transition: "all 0.15s" } }, "\u30D1\u30BF\u30FC\u30F3", i + 1, /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "10px", fontWeight: "500" } }, r.mood)))), results[activePattern] && (() => { const r = results[activePattern]; const color = CARD_COLORS[activePattern]; const moodColor = MOOD_COLORS[activePattern]; return /* @__PURE__ */ React.createElement("div", { style: { background: color, borderRadius: "20px", padding: "20px", boxShadow: "0 4px 20px rgba(0,0,0,0.08)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { background: "rgba(255,255,255,0.8)", borderRadius: "20px", padding: "3px 12px", fontSize: "11px", fontWeight: "700", color: moodColor } }, r.mood), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Playfair Display', serif", fontSize: "20px", fontWeight: "700", color: "#2a2a2a", marginTop: "6px" } }, r.title))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { flexShrink: 0, background: "rgba(255,255,255,0.5)", borderRadius: "16px", padding: "8px" } }, /* @__PURE__ */ React.createElement(FashionAvatar, { profile: user == null ? void 0 : user.profile, coordItems: r.items, cardColor: color })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "700", color: "#888", marginBottom: "6px" } }, "\u30B3\u30FC\u30C7\u30A2\u30A4\u30C6\u30E0"), /* @__PURE__ */ React.createElement(ClosetLegend, null), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "6px" } }, r.items.map((item, i) => /* @__PURE__ */ React.createElement(ItemTag, { key: i, label: item, inCloset: isInCloset(item, closetItems) }))))), r.colorPoint && /* @__PURE__ */ React.createElement("div", { style: { background: "rgba(255,255,255,0.65)", borderRadius: "12px", padding: "10px 14px", marginBottom: "8px", fontSize: "12px", color: "#555" } }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: "700", color: moodColor } }, "\u{1F3A8} \u30AB\u30E9\u30FC\u30DD\u30A4\u30F3\u30C8"), /* @__PURE__ */ React.createElement("br", null), r.colorPoint), /* @__PURE__ */ React.createElement("div", { style: { background: "rgba(255,255,255,0.65)", borderRadius: "12px", padding: "10px 14px", marginBottom: "8px", fontSize: "12px", color: "#555" } }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: "700" } }, "\u{1F4A1} \u30B9\u30BF\u30A4\u30EA\u30F3\u30B0\u306E\u30B3\u30C4"), /* @__PURE__ */ React.createElement("br", null), r.tip), r.reason && /* @__PURE__ */ React.createElement("div", { style: { background: "rgba(255,255,255,0.65)", borderRadius: "12px", padding: "10px 14px", fontSize: "12px", color: "#555" } }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: "700" } }, "\u2705 \u3042\u306A\u305F\u306B\u5408\u3046\u7406\u7531"), /* @__PURE__ */ React.createElement("br", null), r.reason)); })())); } const CATEGORY_OPTIONS = ["\u30C8\u30C3\u30D7\u30B9", "\u30DC\u30C8\u30E0\u30B9", "\u30B9\u30AB\u30FC\u30C8", "\u30A2\u30A6\u30BF\u30FC", "\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30B7\u30E5\u30FC\u30BA", "\u30D0\u30C3\u30B0", "\u30A2\u30AF\u30BB\u30B5\u30EA\u30FC", "\u305D\u306E\u4ED6"]; const EMOJI_OPTIONS = ["\u{1F455}", "\u{1F457}", "\u{1F9E5}", "\u{1F454}", "\u{1F456}", "\u{1F45F}", "\u{1F460}", "\u{1F461}", "\u{1F45C}", "\u{1F45D}", "\u{1F392}", "\u{1F9E3}", "\u{1F9E4}", "\u{1F9E2}", "\u{1F48D}", "\u{1F4FF}", "\u231A", "\u{1F576}\uFE0F", "\u{1F9E6}"]; const COLOR_OPTIONS = [ { label: "\u30DB\u30EF\u30A4\u30C8", value: "#f5f5f5" }, { label: "\u30D6\u30E9\u30C3\u30AF", value: "#1a1a1a" }, { label: "\u30B0\u30EC\u30FC", value: "#9e9e9e" }, { label: "\u30CD\u30A4\u30D3\u30FC", value: "#1a237e" }, { label: "\u30D6\u30EB\u30FC", value: "#4a90e2" }, { label: "\u30EC\u30C3\u30C9", value: "#e53935" }, { label: "\u30D4\u30F3\u30AF", value: "#f48fb1" }, { label: "\u30D1\u30FC\u30D7\u30EB", value: "#9b59b6" }, { label: "\u30B0\u30EA\u30FC\u30F3", value: "#66bb6a" }, { label: "\u30A4\u30A8\u30ED\u30FC", value: "#fdd835" }, { label: "\u30AA\u30EC\u30F3\u30B8", value: "#ff7043" }, { label: "\u30D6\u30E9\u30A6\u30F3", value: "#8B5E3C" }, { label: "\u30D9\u30FC\u30B8\u30E5", value: "#d9c4a7" }, { label: "\u30AD\u30E3\u30E1\u30EB", value: "#c8a165" } ]; const TAG_OPTIONS = ["\u30AB\u30B8\u30E5\u30A2\u30EB", "\u304D\u308C\u3044\u3081", "\u30D5\u30A7\u30DF\u30CB\u30F3", "\u30E2\u30FC\u30C9", "\u30B9\u30DD\u30FC\u30C4", "\u30AA\u30D5\u30A3\u30B9", "\u30C7\u30FC\u30C8", "\u6625\u590F", "\u79CB\u51AC", "\u30D9\u30FC\u30B7\u30C3\u30AF", "\u30C8\u30EC\u30F3\u30C9"]; const BLANK_FORM = { name: "", category: "\u30C8\u30C3\u30D7\u30B9", emoji: "\u{1F455}", color: "#f5f5f5", tags: [], sleeveLength: "" }; const ITEM_PRESETS = { "\u30C8\u30C3\u30D7\u30B9": ["T\u30B7\u30E3\u30C4", "\u30AB\u30C3\u30C8\u30BD\u30FC", "\u30D6\u30E9\u30A6\u30B9", "\u30B7\u30E3\u30C4", "\u30CB\u30C3\u30C8", "\u30B9\u30A6\u30A7\u30C3\u30C8", "\u30BF\u30F3\u30AF\u30C8\u30C3\u30D7", "\u30AD\u30E3\u30DF\u30BD\u30FC\u30EB", "\u30DD\u30ED\u30B7\u30E3\u30C4", "\u30C1\u30E5\u30FC\u30D6\u30C8\u30C3\u30D7", "\u30D3\u30B9\u30C1\u30A7", "\u30B3\u30EB\u30BB\u30C3\u30C8\u30C8\u30C3\u30D7", "\u30D0\u30F3\u30C9\u30A5\u30C8\u30C3\u30D7", "\u30AF\u30ED\u30C3\u30D7\u30C8\u30C3\u30D7", "\u30EA\u30D6\u30CB\u30C3\u30C8", "\u30DC\u30FC\u30C0\u30FCT", "\u30D8\u30F3\u30EA\u30FC\u30CD\u30C3\u30AF", "\u30AA\u30D5\u30B7\u30E7\u30EB\u30C0\u30FC", "\u30C9\u30EC\u30FC\u30D7\u30C8\u30C3\u30D7", "\u30EC\u30FC\u30B9\u30D6\u30E9\u30A6\u30B9"], "\u30DC\u30C8\u30E0\u30B9": ["\u30C7\u30CB\u30E0", "\u30B9\u30AD\u30CB\u30FC\u30D1\u30F3\u30C4", "\u30EF\u30A4\u30C9\u30D1\u30F3\u30C4", "\u30B9\u30E9\u30C3\u30AF\u30B9", "\u30B7\u30E7\u30FC\u30C8\u30D1\u30F3\u30C4", "\u30C1\u30CE\u30D1\u30F3", "\u30EC\u30AE\u30F3\u30B9", "\u30B8\u30E7\u30AC\u30FC\u30D1\u30F3\u30C4", "\u30AB\u30FC\u30B4\u30D1\u30F3\u30C4", "\u30C6\u30FC\u30D1\u30FC\u30C9\u30D1\u30F3\u30C4", "\u30AC\u30A6\u30C1\u30E7\u30D1\u30F3\u30C4", "\u30AF\u30ED\u30C3\u30D7\u30C9\u30D1\u30F3\u30C4", "\u30D0\u30AE\u30FC\u30D1\u30F3\u30C4", "\u30B5\u30C6\u30F3\u30D1\u30F3\u30C4", "\u30EC\u30B6\u30FC\u30D1\u30F3\u30C4", "\u30EA\u30CD\u30F3\u30D1\u30F3\u30C4", "\u30C8\u30E9\u30C3\u30AF\u30D1\u30F3\u30C4", "\u30C7\u30CB\u30E0\u30B7\u30E7\u30FC\u30C4"], "\u30A2\u30A6\u30BF\u30FC": ["\u30C7\u30CB\u30E0\u30B8\u30E3\u30B1\u30C3\u30C8", "\u30C6\u30FC\u30E9\u30FC\u30C9\u30B8\u30E3\u30B1\u30C3\u30C8", "\u30D6\u30EB\u30BE\u30F3", "\u30C8\u30EC\u30F3\u30C1\u30B3\u30FC\u30C8", "\u30A6\u30FC\u30EB\u30B3\u30FC\u30C8", "\u30C0\u30A6\u30F3\u30B8\u30E3\u30B1\u30C3\u30C8", "\u30AB\u30FC\u30C7\u30A3\u30AC\u30F3", "\u30D1\u30FC\u30AB\u30FC", "\u30D5\u30FC\u30C7\u30A3", "\u30E9\u30A4\u30C0\u30FC\u30B9", "\u30CE\u30FC\u30AB\u30E9\u30FC\u30B3\u30FC\u30C8", "\u30C1\u30A7\u30B9\u30BF\u30FC\u30B3\u30FC\u30C8", "\u30DF\u30EA\u30BF\u30EA\u30FC\u30B8\u30E3\u30B1\u30C3\u30C8", "\u30CA\u30A4\u30ED\u30F3\u30B8\u30E3\u30B1\u30C3\u30C8", "\u30D5\u30A1\u30FC\u30B3\u30FC\u30C8", "\u30D9\u30B9\u30C8", "\u30DD\u30F3\u30C1\u30E7", "\u30DE\u30A6\u30F3\u30C6\u30F3\u30D1\u30FC\u30AB\u30FC", "\u30B8\u30C3\u30D7\u30A2\u30C3\u30D7\u30D1\u30FC\u30AB\u30FC", "\u30DC\u30A2\u30B8\u30E3\u30B1\u30C3\u30C8", "\u30AD\u30EB\u30C6\u30A3\u30F3\u30B0\u30B8\u30E3\u30B1\u30C3\u30C8"], "\u30EF\u30F3\u30D4\u30FC\u30B9": ["\u30B7\u30E3\u30C4\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30D5\u30EC\u30A2\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30BF\u30A4\u30C8\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30CB\u30C3\u30C8\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30DE\u30AD\u30B7\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30DF\u30CB\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30E9\u30C3\u30D7\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30B5\u30C6\u30F3\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30CB\u30C3\u30C8\u30EF\u30F3\u30D4\u30FC\u30B9", "A\u30E9\u30A4\u30F3\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30AD\u30E3\u30DF\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30C6\u30A3\u30A2\u30FC\u30C9\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30B3\u30EB\u30BB\u30C3\u30C8\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30CB\u30C3\u30C8\u30BF\u30A4\u30C8\u30EF\u30F3\u30D4\u30FC\u30B9", "\u30C7\u30CB\u30E0\u30EF\u30F3\u30D4\u30FC\u30B9"], "\u30B9\u30AB\u30FC\u30C8": ["\u30D5\u30EC\u30A2\u30B9\u30AB\u30FC\u30C8", "\u30D7\u30EA\u30FC\u30C4\u30B9\u30AB\u30FC\u30C8", "\u30BF\u30A4\u30C8\u30B9\u30AB\u30FC\u30C8", "\u30DF\u30CB\u30B9\u30AB\u30FC\u30C8", "\u30DE\u30AD\u30B7\u30B9\u30AB\u30FC\u30C8", "\u30C7\u30CB\u30E0\u30B9\u30AB\u30FC\u30C8", "\u30C1\u30A7\u30C3\u30AF\u30B9\u30AB\u30FC\u30C8", "\u30C6\u30A3\u30A2\u30FC\u30C9\u30B9\u30AB\u30FC\u30C8", "\u30E9\u30C3\u30D7\u30B9\u30AB\u30FC\u30C8", "\u30B5\u30C6\u30F3\u30B9\u30AB\u30FC\u30C8", "\u30EC\u30B6\u30FC\u30B9\u30AB\u30FC\u30C8", "\u30CB\u30C3\u30C8\u30B9\u30AB\u30FC\u30C8", "\u30A2\u30B7\u30F3\u30E1\u30C8\u30EA\u30FC\u30B9\u30AB\u30FC\u30C8", "\u30D0\u30A4\u30A2\u30B9\u30AB\u30C3\u30C8\u30B9\u30AB\u30FC\u30C8", "\u30B9\u30EA\u30C3\u30C8\u30B9\u30AB\u30FC\u30C8"], "\u30B7\u30E5\u30FC\u30BA": ["\u30B9\u30CB\u30FC\u30AB\u30FC", "\u30D1\u30F3\u30D7\u30B9", "\u30ED\u30FC\u30D5\u30A1\u30FC", "\u30D6\u30FC\u30C4", "\u30B5\u30F3\u30C0\u30EB", "\u30DF\u30E5\u30FC\u30EB", "\u30D0\u30EC\u30A8\u30B7\u30E5\u30FC\u30BA", "\u30D2\u30FC\u30EB\u30D6\u30FC\u30C4", "\u30B9\u30EA\u30C3\u30DD\u30F3", "\u30D7\u30E9\u30C3\u30C8\u30D5\u30A9\u30FC\u30E0\u30B9\u30CB\u30FC\u30AB\u30FC", "\u30C1\u30E3\u30F3\u30AD\u30FC\u30D2\u30FC\u30EB", "\u30B9\u30C8\u30E9\u30C3\u30D7\u30B5\u30F3\u30C0\u30EB", "\u30D5\u30E9\u30C3\u30C8\u30B5\u30F3\u30C0\u30EB", "\u30A6\u30A7\u30C3\u30B8\u30B5\u30F3\u30C0\u30EB", "\u30C8\u30F3\u30B0\u30B5\u30F3\u30C0\u30EB", "\u30B0\u30E9\u30C7\u30A3\u30A8\u30FC\u30BF\u30FC\u30B5\u30F3\u30C0\u30EB", "\u30D3\u30EB\u30B1\u30F3\u30B5\u30F3\u30C0\u30EB", "\u30B9\u30DD\u30FC\u30C4\u30B5\u30F3\u30C0\u30EB", "\u30B9\u30C6\u30A3\u30EC\u30C3\u30C8\u30D2\u30FC\u30EB", "\u30A2\u30F3\u30AF\u30EB\u30D6\u30FC\u30C4", "\u30CB\u30FC\u30CF\u30A4\u30D6\u30FC\u30C4", "\u30C1\u30A7\u30EB\u30B7\u30FC\u30D6\u30FC\u30C4", "\u30C9\u30AF\u30BF\u30FC\u30DE\u30FC\u30C1\u30F3", "\u30A8\u30B9\u30D1\u30C9\u30EA\u30FC\u30E6", "\u30E2\u30AB\u30B7\u30F3", "\u30AA\u30C3\u30AF\u30B9\u30D5\u30A9\u30FC\u30C9", "\u30C0\u30FC\u30D3\u30FC\u30B7\u30E5\u30FC\u30BA", "\u30E1\u30A2\u30EA\u30FC\u30B8\u30A7\u30FC\u30F3"], "\u30D0\u30C3\u30B0": ["\u30C8\u30FC\u30C8\u30D0\u30C3\u30B0", "\u30B7\u30E7\u30EB\u30C0\u30FC\u30D0\u30C3\u30B0", "\u30EA\u30E5\u30C3\u30AF", "\u30AF\u30E9\u30C3\u30C1\u30D0\u30C3\u30B0", "\u30DF\u30CB\u30D0\u30C3\u30B0", "\u304B\u3054\u30D0\u30C3\u30B0", "\u30C1\u30A7\u30FC\u30F3\u30D0\u30C3\u30B0", "\u30DC\u30B9\u30C8\u30F3\u30D0\u30C3\u30B0", "\u30A6\u30A8\u30B9\u30C8\u30DD\u30FC\u30C1", "\u30D0\u30B1\u30C4\u30D0\u30C3\u30B0", "\u30D5\u30E9\u30C3\u30D7\u30D0\u30C3\u30B0", "\u30B5\u30C3\u30C1\u30A7\u30EB\u30D0\u30C3\u30B0", "\u30C9\u30E9\u30E0\u30D0\u30C3\u30B0", "\u30CF\u30FC\u30D5\u30E0\u30FC\u30F3\u30D0\u30C3\u30B0", "\u30E1\u30C3\u30BB\u30F3\u30B8\u30E3\u30FC\u30D0\u30C3\u30B0", "\u30DE\u30EB\u30C1\u30DD\u30FC\u30C1", "\u30AD\u30E3\u30F3\u30D0\u30B9\u30C8\u30FC\u30C8", "\u30EC\u30B6\u30FC\u30C8\u30FC\u30C8", "\u30B9\u30BF\u30C3\u30BA\u30D0\u30C3\u30B0", "\u30AF\u30ED\u30B9\u30DC\u30C7\u30A3\u30D0\u30C3\u30B0", "\u30DF\u30CB\u30B7\u30E7\u30EB\u30C0\u30FC", "\u30D9\u30EB\u30C8\u30D0\u30C3\u30B0", "\u30C8\u30E9\u30DA\u30FC\u30BA\u30D0\u30C3\u30B0", "\u30DB\u30FC\u30DC\u30FC\u30D0\u30C3\u30B0", "\u30AF\u30EA\u30A2\u30D0\u30C3\u30B0"], "\u30A2\u30AF\u30BB\u30B5\u30EA\u30FC": ["\u30CD\u30C3\u30AF\u30EC\u30B9", "\u30D4\u30A2\u30B9", "\u30A4\u30E4\u30EA\u30F3\u30B0", "\u30D6\u30EC\u30B9\u30EC\u30C3\u30C8", "\u30EA\u30F3\u30B0", "\u30B9\u30AB\u30FC\u30D5", "\u30D9\u30EB\u30C8", "\u30CF\u30C3\u30C8", "\u30B5\u30F3\u30B0\u30E9\u30B9", "\u6642\u8A08", "\u30D0\u30F3\u30B0\u30EB", "\u30C1\u30E7\u30FC\u30AB\u30FC", "\u30ED\u30F3\u30B0\u30CD\u30C3\u30AF\u30EC\u30B9", "\u30D1\u30FC\u30EB\u30CD\u30C3\u30AF\u30EC\u30B9", "\u30C1\u30A7\u30FC\u30F3\u30CD\u30C3\u30AF\u30EC\u30B9", "\u30D5\u30FC\u30D7\u30D4\u30A2\u30B9", "\u30B9\u30BF\u30C3\u30C9\u30D4\u30A2\u30B9", "\u30C9\u30ED\u30C3\u30D7\u30D4\u30A2\u30B9", "\u30C1\u30E3\u30FC\u30E0\u30D6\u30EC\u30B9\u30EC\u30C3\u30C8", "\u30A2\u30F3\u30AF\u30EC\u30C3\u30C8", "\u30D8\u30A2\u30AF\u30EA\u30C3\u30D7", "\u30D8\u30A2\u30D0\u30F3\u30C9", "\u30BF\u30FC\u30D0\u30F3", "\u30D9\u30EC\u30FC\u5E3D", "\u30AD\u30E3\u30C3\u30D7", "\u30CB\u30C3\u30C8\u5E3D", "\u30D0\u30B1\u30C3\u30C8\u30CF\u30C3\u30C8", "\u30AB\u30A6\u30DC\u30FC\u30A4\u30CF\u30C3\u30C8", "\u624B\u888B", "\u30DE\u30D5\u30E9\u30FC", "\u30B9\u30C8\u30FC\u30EB", "\u30EC\u30C3\u30B0\u30A6\u30A9\u30FC\u30DE\u30FC", "\u30BD\u30C3\u30AF\u30B9", "\u30BF\u30A4\u30C4", "\u30CB\u30FC\u30CF\u30A4\u30BD\u30C3\u30AF\u30B9"], "\u305D\u306E\u4ED6": ["\u30EB\u30FC\u30E0\u30A6\u30A7\u30A2", "\u6C34\u7740", "\u30EC\u30A4\u30F3\u30A6\u30A7\u30A2", "\u30B9\u30DD\u30FC\u30C4\u30A6\u30A7\u30A2", "\u30B8\u30E3\u30FC\u30B8", "\u30EC\u30AA\u30BF\u30FC\u30C9", "\u30AA\u30FC\u30D0\u30FC\u30AA\u30FC\u30EB", "\u30B5\u30ED\u30DA\u30C3\u30C8", "\u6D74\u8863", "\u7740\u7269", "\u30AC\u30A6\u30F3", "\u30CA\u30A4\u30C8\u30A6\u30A7\u30A2"] }; const SLEEVE_OPTIONS = [ { value: "\u30CE\u30FC\u30B9\u30EA\u30FC\u30D6", label: "\u30CE\u30FC\u30B9\u30EA\u30FC\u30D6" }, { value: "\u534A\u8896", label: "\u534A\u8896" }, { value: "\u4E03\u5206\u8896", label: "\u4E03\u5206\u8896" }, { value: "\u9577\u8896", label: "\u9577\u8896" } ]; const SLEEVE_CATEGORIES = ["\u30C8\u30C3\u30D7\u30B9", "\u30A2\u30A6\u30BF\u30FC", "\u30EF\u30F3\u30D4\u30FC\u30B9"]; function ItemModal({ item, onSave, onDelete, onClose }) { const isEdit = !!(item == null ? void 0 : item.id); const [form, setForm] = useState(item ? { sleeveLength: "", ...item } : { ...BLANK_FORM }); const [tab, setTab] = useState("basic"); const [nameMode, setNameMode] = useState("preset"); const setF = (k, v) => setForm((f) => ({ ...f, [k]: v })); const toggleTag = (t) => setF("tags", form.tags.includes(t) ? form.tags.filter((x) => x !== t) : [...form.tags, t]); const presets = ITEM_PRESETS[form.category] || []; const showSleeve = SLEEVE_CATEGORIES.includes(form.category); const fullName = form.name ? showSleeve && form.sleeveLength ?`${form.sleeveLength}${form.name}`: form.name : ""; const canSave = form.name.trim().length > 0; return /* @__PURE__ */ React.createElement("div", { style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }, onClick: onClose }, /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "white", borderRadius: "24px 24px 0 0", width: "100%", maxWidth: "430px", maxHeight: "88vh", overflowY: "auto", padding: "24px", animation: "slideUp 0.25s ease" } }, /* @__PURE__ */ React.createElement("style", null,`@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }`), /* @__PURE__ */ React.createElement("div", { style: { width: "40px", height: "4px", background: "#e0e0e0", borderRadius: "4px", margin: "0 auto 20px" } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Playfair Display', serif", fontSize: "20px", fontWeight: "700" } }, isEdit ? "\u30A2\u30A4\u30C6\u30E0\u3092\u7DE8\u96C6" : "\u30A2\u30A4\u30C6\u30E0\u3092\u8FFD\u52A0"), isEdit && /* @__PURE__ */ React.createElement("button", { onClick: () => onDelete(item.id), style: { background: "#fff0f0", border: "none", borderRadius: "10px", padding: "6px 12px", color: "#e53935", fontWeight: "700", fontSize: "12px", cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif" } }, "\u{1F5D1} \u524A\u9664")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "14px", background: "#f7f5f3", borderRadius: "16px", padding: "14px", marginBottom: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "56px", height: "56px", borderRadius: "50%", background: form.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "26px", border: "2px solid #eee", flexShrink: 0 } }, form.emoji), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: "700", fontSize: "15px", color: "#2a2a2a" } }, fullName || "\u30A2\u30A4\u30C6\u30E0\u540D\u672A\u5165\u529B"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#aaa", marginTop: "2px" } }, form.category), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "4px", flexWrap: "wrap", marginTop: "4px" } }, form.tags.map((t, i) => /* @__PURE__ */ React.createElement("span", { key: i, style: { background: "#eee", borderRadius: "8px", padding: "2px 8px", fontSize: "10px", color: "#666" } }, t))))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", background: "#f0f0f0", borderRadius: "12px", padding: "3px", marginBottom: "18px" } }, [["basic", "\u57FA\u672C\u60C5\u5831"], ["color", "\u8272\u30FB\u7D75\u6587\u5B57"], ["tags", "\u30BF\u30B0"]].map(([key, label]) => /* @__PURE__ */ React.createElement("button", { key, onClick: () => setTab(key), style: { flex: 1, padding: "8px 4px", border: "none", borderRadius: "10px", fontWeight: "700", fontSize: "12px", cursor: "pointer", background: tab === key ? "white" : "transparent", color: tab === key ? "#9b59b6" : "#aaa", boxShadow: tab === key ? "0 1px 6px rgba(0,0,0,0.1)" : "none", fontFamily: "'Noto Sans JP', sans-serif", transition: "all 0.15s" } }, label))), tab === "basic" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "16px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "12px", fontWeight: "700", color: "#555", display: "block", marginBottom: "8px" } }, "\u30AB\u30C6\u30B4\u30EA"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "8px" } }, CATEGORY_OPTIONS.map((cat) => /* @__PURE__ */ React.createElement("button", { key: cat, onClick: () => { setF("category", cat); setF("name", ""); setF("sleeveLength", ""); }, style: { padding: "7px 14px", borderRadius: "20px", border: "2px solid", borderColor: form.category === cat ? "#9b59b6" : "#e0e0e0", background: form.category === cat ? "#f5f0ff" : "white", color: form.category === cat ? "#9b59b6" : "#666", fontWeight: "600", fontSize: "12px", cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif" } }, cat)))), showSleeve && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "12px", fontWeight: "700", color: "#555", display: "block", marginBottom: "8px" } }, "\u8896\u306E\u9577\u3055"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap" } }, SLEEVE_OPTIONS.map((s) => /* @__PURE__ */ React.createElement("button", { key: s.value, onClick: () => setF("sleeveLength", form.sleeveLength === s.value ? "" : s.value), style: { padding: "7px 14px", borderRadius: "20px", border: "2px solid", borderColor: form.sleeveLength === s.value ? "#667eea" : "#e0e0e0", background: form.sleeveLength === s.value ? "#eef0ff" : "white", color: form.sleeveLength === s.value ? "#667eea" : "#666", fontWeight: "600", fontSize: "12px", cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif" } }, s.label)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "12px", fontWeight: "700", color: "#555" } }, "\u30A2\u30A4\u30C6\u30E0\u540D *"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", background: "#f0f0f0", borderRadius: "10px", padding: "2px" } }, [["preset", "\u9078\u629E"], ["custom", "\u624B\u5165\u529B"]].map(([m, l]) => /* @__PURE__ */ React.createElement("button", { key: m, onClick: () => setNameMode(m), style: { padding: "4px 10px", border: "none", borderRadius: "8px", fontSize: "11px", fontWeight: "600", cursor: "pointer", background: nameMode === m ? "white" : "transparent", color: nameMode === m ? "#9b59b6" : "#aaa", fontFamily: "'Noto Sans JP', sans-serif" } }, l)))), nameMode === "preset" ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "8px" } }, presets.map((p) => /* @__PURE__ */ React.createElement("button", { key: p, onClick: () => setF("name", p), style: { padding: "8px 14px", borderRadius: "20px", border: "2px solid", borderColor: form.name === p ? "#9b59b6" : "#e0e0e0", background: form.name === p ? "#f5f0ff" : "white", color: form.name === p ? "#9b59b6" : "#555", fontWeight: "600", fontSize: "13px", cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif", transition: "all 0.15s" } }, p))) : /* @__PURE__ */ React.createElement( "input", { value: form.name, onChange: (e) => setF("name", e.target.value), placeholder: "\u4F8B: \u30B9\u30C8\u30E9\u30A4\u30D7\u30B7\u30E3\u30C4", style: { width: "100%", padding: "12px 14px", borderRadius: "12px", border: "2px solid #f0f0f0", fontSize: "14px", outline: "none", background: "#fafafa", fontFamily: "'Noto Sans JP', sans-serif" } } ))), tab === "color" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "18px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "12px", fontWeight: "700", color: "#555", display: "block", marginBottom: "8px" } }, "\u7D75\u6587\u5B57"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "8px" } }, EMOJI_OPTIONS.map((em) => /* @__PURE__ */ React.createElement("button", { key: em, onClick: () => setF("emoji", em), style: { width: "42px", height: "42px", borderRadius: "12px", border: "2px solid", borderColor: form.emoji === em ? "#9b59b6" : "#e0e0e0", background: form.emoji === em ? "#f5f0ff" : "white", fontSize: "20px", cursor: "pointer" } }, em)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "12px", fontWeight: "700", color: "#555", display: "block", marginBottom: "8px" } }, "\u30AB\u30E9\u30FC"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "8px" } }, COLOR_OPTIONS.map((c) => /* @__PURE__ */ React.createElement("button", { key: c.value, onClick: () => setF("color", c.value), title: c.label, style: { width: "36px", height: "36px", borderRadius: "50%", border: "3px solid", borderColor: form.color === c.value ? "#9b59b6" : "#e0e0e0", background: c.value, cursor: "pointer", boxShadow: form.color === c.value ? "0 0 0 2px #9b59b6" : "none" } }))))), tab === "tags" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "12px", fontWeight: "700", color: "#555", display: "block", marginBottom: "8px" } }, "\u30BF\u30B0\u3092\u9078\u629E"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "8px" } }, TAG_OPTIONS.map((t) => /* @__PURE__ */ React.createElement("button", { key: t, onClick: () => toggleTag(t), style: { padding: "8px 16px", borderRadius: "20px", border: "2px solid", borderColor: form.tags.includes(t) ? "#9b59b6" : "#e0e0e0", background: form.tags.includes(t) ? "#f5f0ff" : "white", color: form.tags.includes(t) ? "#9b59b6" : "#666", fontWeight: "600", fontSize: "13px", cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif" } }, t)))), /* @__PURE__ */ React.createElement("button", { onClick: () => canSave && onSave({ ...form, name: fullName || form.name }), style: { width: "100%", padding: "14px", borderRadius: "14px", border: "none", background: canSave ? "linear-gradient(135deg, #667eea, #9b59b6)" : "#ddd", color: "white", fontWeight: "700", fontSize: "15px", cursor: canSave ? "pointer" : "default", marginTop: "24px", fontFamily: "'Noto Sans JP', sans-serif", boxShadow: canSave ? "0 4px 16px rgba(155,89,182,0.3)" : "none" } }, isEdit ? "\u5909\u66F4\u3092\u4FDD\u5B58" : "\u8FFD\u52A0\u3059\u308B"))); } function ClosetTab({ items, onAddItem, onEditItem, onDeleteItem }) { const [filter, setFilter] = useState("\u3059\u3079\u3066"); const [editMode, setEditMode] = useState(false); const [modal, setModal] = useState(null); const categories = ["\u3059\u3079\u3066", ...CATEGORY_OPTIONS]; const filtered = filter === "\u3059\u3079\u3066" ? items : items.filter((i) => i.category === filter); const handleSave = (form) => { if (modal === "add") onAddItem(form); else onEditItem({ ...modal, ...form }); setModal(null); }; const handleDelete = (id) => { onDeleteItem(id); setModal(null); }; return /* @__PURE__ */ React.createElement("div", null, modal && /* @__PURE__ */ React.createElement( ItemModal, { item: modal === "add" ? null : modal, onSave: handleSave, onDelete: handleDelete, onClose: () => setModal(null) } ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", color: "#aaa" } }, items.length, "\u30A2\u30A4\u30C6\u30E0"), /* @__PURE__ */ React.createElement("button", { onClick: () => setEditMode((e) => !e), style: { padding: "6px 14px", borderRadius: "20px", border: "2px solid", borderColor: editMode ? "#e53935" : "#9b59b6", background: editMode ? "#fff0f0" : "#f5f0ff", color: editMode ? "#e53935" : "#9b59b6", fontWeight: "700", fontSize: "12px", cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif" } }, editMode ? "\u2705 \u5B8C\u4E86" : "\u270F\uFE0F \u7DE8\u96C6")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "8px", marginBottom: "16px" } }, categories.map((cat) => /* @__PURE__ */ React.createElement("button", { key: cat, onClick: () => setFilter(cat), style: { background: filter === cat ? "#2a2a2a" : "#f0f0f0", color: filter === cat ? "white" : "#555", border: "none", borderRadius: "20px", padding: "6px 14px", fontSize: "12px", fontWeight: "600", cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.2s" } }, cat))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" } }, filtered.map((item) => /* @__PURE__ */ React.createElement("div", { key: item.id, onClick: () => editMode && setModal(item), style: { background: "white", borderRadius: "16px", padding: "16px", textAlign: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", cursor: editMode ? "pointer" : "default", border: editMode ? "2px dashed #9b59b6" : "2px solid transparent", position: "relative", transition: "all 0.15s" } }, editMode && /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: "8px", right: "8px", background: "#9b59b6", color: "white", borderRadius: "50%", width: "20px", height: "20px", fontSize: "11px", display: "flex", alignItems: "center", justifyContent: "center" } }, "\u270E"), /* @__PURE__ */ React.createElement("div", { style: { width: "50px", height: "50px", background: item.color, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", margin: "0 auto 10px", border: "2px solid #eee" } }, item.emoji), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", fontWeight: "600", color: "#2a2a2a", marginBottom: "4px" } }, item.name), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#aaa" } }, item.category), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "center", marginTop: "6px" } }, item.tags.map((tag, i) => /* @__PURE__ */ React.createElement("span", { key: i, style: { background: "#f5f5f5", borderRadius: "8px", padding: "2px 8px", fontSize: "10px", color: "#777" } }, tag))))), /* @__PURE__ */ React.createElement("button", { onClick: () => setModal("add"), style: { background: "#f9f9f9", border: "2px dashed #ddd", borderRadius: "16px", padding: "16px", textAlign: "center", cursor: "pointer", color: "#aaa", fontSize: "13px", fontWeight: "600", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "120px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "28px", marginBottom: "6px" } }, "+"), "\u30A2\u30A4\u30C6\u30E0\u8FFD\u52A0"))); } const SHOP_SITES = [ { category: "\u7DCF\u5408\u30D5\u30A1\u30C3\u30B7\u30E7\u30F3", sites: [ { name: "ZOZOTOWN", desc: "\u56FD\u5185\u6700\u5927\u7D1A\u306E\u30D5\u30A1\u30C3\u30B7\u30E7\u30F3\u901A\u8CA9", emoji: "\u{1F6CD}\uFE0F", color: "#000000", url: "https://zozo.jp" }, { name: "UNIQLO", desc: "\u30D9\u30FC\u30B7\u30C3\u30AF\u30A2\u30A4\u30C6\u30E0\u306A\u3089\u3053\u3053", emoji: "\u{1F534}", color: "#e60012", url: "https://www.uniqlo.com/jp" }, { name: "GU", desc: "\u30C8\u30EC\u30F3\u30C9\u3092\u304A\u624B\u9803\u4FA1\u683C\u3067", emoji: "\u{1F7E3}", color: "#6a1b9a", url: "https://www.gu-global.com/jp" }, { name: "H&M", desc: "\u4E16\u754C\u7684\u4EBA\u6C17\u306E\u30D5\u30A1\u30B9\u30C8\u30D5\u30A1\u30C3\u30B7\u30E7\u30F3", emoji: "\u{1F30D}", color: "#cc0000", url: "https://www2.hm.com/ja_jp" } ] }, { category: "\u30BB\u30EC\u30AF\u30C8\u30B7\u30E7\u30C3\u30D7", sites: [ { name: "BEAMS", desc: "\u30C8\u30EC\u30F3\u30C9\u30BB\u30F3\u30B9\u3042\u3075\u308C\u308B\u30BB\u30EC\u30AF\u30C8", emoji: "\u{1F3F7}\uFE0F", color: "#2e4a7a", url: "https://www.beams.co.jp" }, { name: "SHIPS", desc: "\u4E0A\u8CEA\u306A\u304D\u308C\u3044\u3081\u30AB\u30B8\u30E5\u30A2\u30EB", emoji: "\u2693", color: "#1a3a5c", url: "https://www.shipsltd.co.jp" }, { name: "UNITED ARROWS", desc: "\u3053\u3060\u308F\u308A\u306E\u5927\u4EBA\u30B9\u30BF\u30A4\u30EB", emoji: "\u{1F3F9}", color: "#2a2a2a", url: "https://www.united-arrows.co.jp" }, { name: "Rakuten Fashion", desc: "\u30D6\u30E9\u30F3\u30C9\u304C\u8C4A\u5BCC\u306A\u30D5\u30A1\u30C3\u30B7\u30E7\u30F3\u901A\u8CA9", emoji: "\u{1F6D2}", color: "#bf0000", url: "https://fashion.rakuten.co.jp" } ] }, { category: "\u30CF\u30A4\u30D6\u30E9\u30F3\u30C9\u30FB\u30E9\u30B0\u30B8\u30E5\u30A2\u30EA\u30FC", sites: [ { name: "FARFETCH", desc: "\u4E16\u754C\u4E2D\u306E\u30E9\u30B0\u30B8\u30E5\u30A2\u30EA\u30FC\u3092\u4E00\u62EC\u8CFC\u5165", emoji: "\u{1F48E}", color: "#222222", url: "https://www.farfetch.com/jp" }, { name: "NET-A-PORTER", desc: "\u4E16\u754C\u30C8\u30C3\u30D7\u30AF\u30E9\u30B9\u306E\u30E9\u30B0\u30B8\u30E5\u30A2\u30EA\u30FC\u901A\u8CA9", emoji: "\u{1F451}", color: "#1a1a1a", url: "https://www.net-a-porter.com" }, { name: "SSENSE", desc: "\u30B9\u30C8\u30EA\u30FC\u30C8\xD7\u30E9\u30B0\u30B8\u30E5\u30A2\u30EA\u30FC\u306E\u878D\u5408", emoji: "\u2B50", color: "#000000", url: "https://www.ssense.com/ja-jp" } ] }, { category: "\u30D5\u30EA\u30DE\u30FB\u4E2D\u53E4", sites: [ { name: "\u30E1\u30EB\u30AB\u30EA", desc: "\u30D5\u30EA\u30DE\u30A2\u30D7\u30EA\u306E\u5B9A\u756A", emoji: "\u{1F534}", color: "#ff0211", url: "https://jp.mercari.com" }, { name: "FRIL\uFF08\u30D5\u30EA\u30EB\uFF09", desc: "\u30EC\u30C7\u30A3\u30FC\u30B9\u306B\u7279\u5316\u3057\u305F\u30D5\u30EA\u30DE", emoji: "\u{1F338}", color: "#e91e8c", url: "https://fril.jp" }, { name: "\u30E9\u30AF\u30DE", desc: "\u697D\u5929\u306E\u30D5\u30EA\u30DE\u30A2\u30D7\u30EA", emoji: "\u{1F340}", color: "#009900", url: "https://fril.jp" } ] } ]; function ShoppingTab() { const [search, setSearch] = useState(""); const filtered = SHOP_SITES.map((cat) => ({ ...cat, sites: cat.sites.filter( (s) => s.name.toLowerCase().includes(search.toLowerCase()) || s.desc.includes(search) ) })).filter((cat) => cat.sites.length > 0); return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", borderRadius: "20px", padding: "20px", marginBottom: "20px", color: "white" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Playfair Display', serif", fontSize: "20px", fontWeight: "700" } }, "\u{1F6CD}\uFE0F \u30B7\u30E7\u30C3\u30D4\u30F3\u30B0"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", opacity: 0.85, marginTop: "4px" } }, "\u304A\u6C17\u306B\u5165\u308A\u306E\u30B5\u30A4\u30C8\u3078\u30B8\u30E3\u30F3\u30D7")), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", marginBottom: "20px" } }, /* @__PURE__ */ React.createElement("span", { style: { position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "16px" } }, "\u{1F50D}"), /* @__PURE__ */ React.createElement( "input", { value: search, onChange: (e) => setSearch(e.target.value), placeholder: "\u30B5\u30A4\u30C8\u540D\u3067\u691C\u7D22...", style: { width: "100%", padding: "12px 14px 12px 40px", borderRadius: "14px", border: "2px solid #f0f0f0", fontSize: "14px", outline: "none", background: "white", fontFamily: "'Noto Sans JP', sans-serif" } } )), filtered.map((cat, ci) => /* @__PURE__ */ React.createElement("div", { key: ci, style: { marginBottom: "24px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", fontWeight: "700", color: "#888", marginBottom: "10px", letterSpacing: "0.5px" } }, cat.category), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "10px" } }, cat.sites.map((site, si) => /* @__PURE__ */ React.createElement( "a", { key: si, href: site.url, target: "_blank", rel: "noopener noreferrer", style: { textDecoration: "none" } }, /* @__PURE__ */ React.createElement( "div", { style: { background: "white", borderRadius: "16px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", transition: "transform 0.15s, box-shadow 0.15s", cursor: "pointer" }, onMouseEnter: (e) => { e.currentTarget.style.transform = "translateX(4px)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.12)"; }, onMouseLeave: (e) => { e.currentTarget.style.transform = "translateX(0)"; e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06)"; } }, /* @__PURE__ */ React.createElement("div", { style: { width: "48px", height: "48px", borderRadius: "14px", background: site.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", flexShrink: 0 } }, site.emoji), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: "700", fontSize: "15px", color: "#2a2a2a" } }, site.name), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#aaa", marginTop: "2px" } }, site.desc)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "18px", color: "#ccc", flexShrink: 0 } }, "\u2192") ) ))))), filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "40px 0", color: "#aaa" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "32px", marginBottom: "10px" } }, "\u{1F50D}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "14px" } }, "\u300C", search, "\u300D\u306B\u4E00\u81F4\u3059\u308B\u30B5\u30A4\u30C8\u306F\u3042\u308A\u307E\u305B\u3093"))); } function TrendTab({ user }) { const [selected, setSelected] = useState(null); const [results, setResults] = useState(null); const [loading, setLoading] = useState(false); const handleSelect = async (trend) => { var _a, _b; setSelected(trend); setResults(null); setLoading(true); const profile = user == null ? void 0 : user.profile; const pc = profile == null ? void 0 : profile.personalColor; const profileDesc = (profile == null ? void 0 : profile.height) ? `\u8EAB\u9577${profile.height}cm\u30FB\u4F53\u91CD${profile.weight}kg\u30FB${profile.hairLength}\u30D8\u30A2\u30FB\u30D1\u30FC\u30BD\u30CA\u30EB\u30AB\u30E9\u30FC${PC_LABEL[pc] || “”}\u30FB\u9AA8\u683C${{ straight: “\u30B9\u30C8\u30EC\u30FC\u30C8”, wave: “\u30A6\u30A7\u30FC\u30D6”, natural: “\u30CA\u30C1\u30E5\u30E9\u30EB” }[profile.skeletonType] || “”}`: "\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u672A\u767B\u9332"; const favoriteStyles = ((user == null ? void 0 : user.favoriteStyles) || []).map((k) => { var _a2; return (_a2 = STYLE_OPTIONS.find((s) => s.key === k)) == null ? void 0 : _a2.label; }).filter(Boolean).join("\u30FB") || "\u6307\u5B9A\u306A\u3057"; const prompt =`\u30C8\u30EC\u30F3\u30C9\u30AD\u30FC\u30EF\u30FC\u30C9\u300C${trend.title}\u300D\uFF08${trend.desc}\uFF09\u3092\u30C6\u30FC\u30DE\u306B\u3057\u305F\u30B3\u30FC\u30C7\u309210\u30D1\u30BF\u30FC\u30F3\u63D0\u6848\u3057\u3066\u304F\u3060\u3055\u3044\u3002
+
+\u30E6\u30FC\u30B6\u30FC\u60C5\u5831:
+
+- ${profileDesc}
+- \u597D\u307F\u306E\u30B9\u30BF\u30A4\u30EB: ${favoriteStyles}
+
+\u5FC5\u305A\u4EE5\u4E0B\u306EJSON\u914D\u5217\u306E\u307F\u3067\u8FD4\u7B54\u3057\u3066\u304F\u3060\u3055\u3044\uFF08\u8AAC\u660E\u6587\u30FB\u30D0\u30C3\u30AF\u30AF\u30A9\u30FC\u30C8\u4E0D\u8981\uFF09:
+[
+{
+“title”: “\u30B3\u30FC\u30C7\u540D\uFF0810\u6587\u5B57\u4EE5\u5185\uFF09”,
+“mood”: “\u96F0\u56F2\u6C17\u30BF\u30B0”,
+“items”: [”\u30A2\u30A4\u30C6\u30E01\uFF08\u30C8\u30C3\u30D7\u30B9\u30FB\u30EF\u30F3\u30D4\u30FC\u30B9\u30FB\u30A2\u30A6\u30BF\u30FC\u306B\u306F\u534A\u8896/\u9577\u8896/\u4E03\u5206\u8896/\u30CE\u30FC\u30B9\u30EA\u30FC\u30D6\u3092\u660E\u8A18\uFF09”, “\u30A2\u30A4\u30C6\u30E02”, “\u30A2\u30A4\u30C6\u30E03”],
+“point”: “\u3053\u306E\u30C8\u30EC\u30F3\u30C9\u3092\u53D6\u308A\u5165\u308C\u305F\u30DD\u30A4\u30F3\u30C8\uFF081\u6587\uFF09”
+}
+]
+\u203Bitems\u306E\u30C8\u30C3\u30D7\u30B9\u30FB\u30EF\u30F3\u30D4\u30FC\u30B9\u30FB\u30A2\u30A6\u30BF\u30FC\u306B\u306F\u5FC5\u305A\u300C\u534A\u8896\u300D\u300C\u9577\u8896\u300D\u300C\u4E03\u5206\u8896\u300D\u300C\u30CE\u30FC\u30B9\u30EA\u30FC\u30D6\u300D\u306E\u3044\u305A\u308C\u304B\u3092\u542B\u3081\u308B\u3053\u3068`; try { const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2e3, system: "\u3042\u306A\u305F\u306F\u30C8\u30EC\u30F3\u30C9\u306B\u7CBE\u901A\u3057\u305F\u30D5\u30A1\u30C3\u30B7\u30E7\u30F3\u30B9\u30BF\u30A4\u30EA\u30B9\u30C8\u3067\u3059\u3002\u6307\u5B9A\u3055\u308C\u305F\u30C8\u30EC\u30F3\u30C9\u30AD\u30FC\u30EF\u30FC\u30C9\u306B\u6CBF\u3063\u305F\u30B3\u30FC\u30C7\u3092\u63D0\u6848\u3057\u307E\u3059\u3002\u5FC5\u305AJSON\u914D\u5217\u306E\u307F\u8FD4\u7B54\u3057\u3066\u304F\u3060\u3055\u3044\u3002", messages: [{ role: "user", content: prompt }] }) }); const data = await res.json(); const text = ((_b = (_a = data.content) == null ? void 0 : _a.find((b) => b.type === "text")) == null ? void 0 : _b.text) || "[]"; const clean = text.replace(/\x60\x60\x60json|\x60\x60\x60/g, "").trim(); setResults(JSON.parse(clean)); } catch (e) { setResults([{ title: "\u30A8\u30E9\u30FC", mood: "-", items: [], point: "\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044" }]); } setLoading(false); }; const CARD_COLORS = [ "#fce4ec", "#e3f2fd", "#e8f5e9", "#fff8e1", "#f3e5f5", "#e0f2f1", "#fbe9e7", "#e8eaf6", "#f1f8e9", "#fce4ec" ]; const MOOD_COLORS = [ "#e91e63", "#1976d2", "#388e3c", "#f9a825", "#9c27b0", "#00897b", "#e64a19", "#3949ab", "#7cb342", "#e91e63" ]; return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { background: "linear-gradient(135deg, #f5af19 0%, #f12711 100%)", borderRadius: "20px", padding: "20px", marginBottom: "20px", color: "white" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Playfair Display', serif", fontSize: "20px", fontWeight: "700" } }, "2026 Spring/Summer"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", opacity: 0.85, marginTop: "4px" } }, selected ? `\u300C${selected.title}\u300D\u306E\u63D0\u6848\u3092\u8868\u793A\u4E2D`: "\u30C8\u30EC\u30F3\u30C9\u3092\u30BF\u30C3\u30D7\u3057\u3066\u63D0\u6848\u3092\u898B\u308B")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" } }, TRENDS.map((trend) => { const isActive = (selected == null ? void 0 : selected.id) === trend.id; return /* @__PURE__ */ React.createElement("div", { key: trend.id, onClick: () => handleSelect(trend), style: { background: trend.color, borderRadius: "16px", padding: "16px", cursor: "pointer", border:`2px solid ${isActive ? “#f12711” : “transparent”}`, boxShadow: isActive ? "0 4px 20px rgba(241,39,17,0.3)" : "none", transition: "all 0.2s", transform: isActive ? "scale(1.02)" : "scale(1)" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "26px", marginBottom: "8px" } }, trend.icon), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "14px", fontWeight: "700", color: "#2a2a2a", marginBottom: "4px" } }, trend.title), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#666", lineHeight: "1.5", marginBottom: "8px" } }, trend.desc), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ React.createElement("span", { style: { background: "rgba(255,255,255,0.7)", borderRadius: "10px", padding: "2px 10px", fontSize: "10px", fontWeight: "600", color: "#444" } }, trend.tag), isActive && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "14px" } }, "\u2705"))); })), loading && /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: "20px", padding: "32px", textAlign: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "32px", marginBottom: "12px", animation: "spin 1s linear infinite", display: "inline-block" } }, "\u{1F300}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "14px", color: "#888" } }, "10\u30D1\u30BF\u30FC\u30F3\u306E\u30B3\u30FC\u30C7\u3092\u8003\u3048\u3066\u3044\u307E\u3059\u2026")), results && !loading && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Playfair Display', serif", fontSize: "18px", fontWeight: "700", marginBottom: "14px", color: "#2a2a2a" } }, selected == null ? void 0 : selected.icon, " ", selected == null ? void 0 : selected.title, "\u306E\u30B3\u30FC\u30C7\u63D0\u6848"), results.map((r, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { background: CARD_COLORS[i % CARD_COLORS.length], borderRadius: "18px", padding: "16px", marginBottom: "12px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", animation: `fadeUp 0.3s ease ${i * 0.05}s both`} }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "28px", height: "28px", borderRadius: "50%", background: MOOD_COLORS[i % MOOD_COLORS.length], color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 } }, i + 1), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Playfair Display', serif", fontSize: "16px", fontWeight: "700", color: "#2a2a2a" } }, r.title), /* @__PURE__ */ React.createElement("span", { style: { background: "rgba(255,255,255,0.75)", borderRadius: "10px", padding: "1px 8px", fontSize: "10px", fontWeight: "600", color: MOOD_COLORS[i % MOOD_COLORS.length] } }, r.mood))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "8px" } }, (r.items || []).map((item, j) => /* @__PURE__ */ React.createElement("span", { key: j, style: { background: "rgba(255,255,255,0.85)", borderRadius: "10px", padding: "4px 10px", fontSize: "11px", color: "#333", fontWeight: "600" } }, item))), r.point && /* @__PURE__ */ React.createElement("div", { style: { background: "rgba(255,255,255,0.6)", borderRadius: "10px", padding: "8px 12px", fontSize: "11px", color: "#555" } }, "\u{1F4A1} ", r.point)))), !selected && !loading && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "20px 0", color: "#bbb" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "28px", marginBottom: "8px" } }, "\u{1F446}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px" } }, "\u4E0A\u306E\u30C8\u30EC\u30F3\u30C9\u30AB\u30FC\u30C9\u3092\u30BF\u30C3\u30D7\u3057\u3066\u306D"))); } const STYLE_OPTIONS = [ { key: "stylish", label: "\u30B9\u30BF\u30A4\u30EA\u30C3\u30B7\u30E5", emoji: "\u{1F5A4}", desc: "\u30AF\u30FC\u30EB\u30FB\u30E2\u30FC\u30C9\u30FB\u6D17\u7DF4", color: "#2a2a2a", light: "#f5f5f5" }, { key: "girly", label: "\u30AC\u30FC\u30EA\u30FC", emoji: "\u{1F338}", desc: "\u30D5\u30A7\u30DF\u30CB\u30F3\u30FB\u7518\u3081\u30FB\u53EF\u611B\u3044", color: "#e91e8c", light: "#fce4ec" }, { key: "casual", label: "\u30AB\u30B8\u30E5\u30A2\u30EB", emoji: "\u{1F45F}", desc: "\u30E9\u30D5\u30FB\u30EA\u30E9\u30C3\u30AF\u30B9\u30FB\u30C7\u30A4\u30EA\u30FC", color: "#4a90e2", light: "#e3f2fd" }, { key: "natural", label: "\u30CA\u30C1\u30E5\u30E9\u30EB", emoji: "\u{1F33F}", desc: "\u30AA\u30FC\u30AC\u30CB\u30C3\u30AF\u30FB\u30A2\u30FC\u30B9\u30FB\u7652\u3057", color: "#6a9e6a", light: "#e8f5e9" }, { key: "office", label: "\u30AA\u30D5\u30A3\u30B9", emoji: "\u{1F4BC}", desc: "\u304D\u308C\u3044\u3081\u30FB\u901A\u52E4\u30FB\u4E0A\u54C1", color: "#5c6bc0", light: "#e8eaf6" }, { key: "street", label: "\u30B9\u30C8\u30EA\u30FC\u30C8", emoji: "\u{1F525}", desc: "\u30F4\u30A3\u30F3\u30C6\u30FC\u30B8\u30FB\u30A2\u30E1\u30AB\u30B8", color: "#e65100", light: "#fff3e0" }, { key: "romantic", label: "\u30ED\u30DE\u30F3\u30C6\u30A3\u30C3\u30AF", emoji: "\u{1F339}", desc: "\u30A8\u30EC\u30AC\u30F3\u30C8\u30FB\u4E0A\u54C1\u30FB\u83EF\u3084\u304B", color: "#9c4dcc", light: "#f3e5f5" }, { key: "sporty", label: "\u30B9\u30DD\u30FC\u30C6\u30A3", emoji: "\u26A1", desc: "\u30A2\u30AF\u30C6\u30A3\u30D6\u30FB\u6A5F\u80FD\u7684\u30FB\u5143\u6C17", color: "#00897b", light: "#e0f2f1" }, { key: "minimal", label: "\u30DF\u30CB\u30DE\u30EB", emoji: "\u25FB\uFE0F", desc: "\u30B7\u30F3\u30D7\u30EB\u30FB\u30E2\u30CE\u30C8\u30FC\u30F3\u30FB\u7121\u99C4\u306A\u3057", color: "#757575", light: "#f5f5f5" }, { key: "vintage", label: "\u30F4\u30A3\u30F3\u30C6\u30FC\u30B8", emoji: "\u{1F39E}\uFE0F", desc: "\u30EC\u30C8\u30ED\u30FB\u30AF\u30E9\u30B7\u30C3\u30AF\u30FB\u500B\u6027\u7684", color: "#8d6e63", light: "#efebe9" } ]; const PC_LABEL_MAP = { spring: "\u30A4\u30A8\u30D9\u6625", summer: "\u30D6\u30EB\u30D9\u590F", autumn: "\u30A4\u30A8\u30D9\u79CB", winter: "\u30D6\u30EB\u30D9\u51AC" }; const HAIR_LABEL_MAP = { \u30B7\u30E7\u30FC\u30C8: "\u30B7\u30E7\u30FC\u30C8", \u30DF\u30C7\u30A3\u30A2\u30E0: "\u30DF\u30C7\u30A3\u30A2\u30E0", \u30ED\u30F3\u30B0: "\u30ED\u30F3\u30B0", \u30D9\u30EA\u30FC\u30ED\u30F3\u30B0: "\u30D9\u30EA\u30FC\u30ED\u30F3\u30B0" }; function ProfileTab({ user, onUpdateUser, items, likedCoords }) { var _a; const profile = (user == null ? void 0 : user.profile) || {}; const savedStyles = (user == null ? void 0 : user.favoriteStyles) || []; const [selected, setSelected] = useState(savedStyles); const [saved, setSaved] = useState(false); const toggle = (key) => { setSelected( (prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key] ); setSaved(false); }; const handleSave = () => { onUpdateUser({ ...user, favoriteStyles: selected }); setSaved(true); setTimeout(() => setSaved(false), 2e3); }; const age = profile.birthdate ? Math.floor((Date.now() - new Date(profile.birthdate)) / (365.25 * 24 * 3600 * 1e3)) : null; const likedCount = Object.values(likedCoords || {}).filter(Boolean).length; const stats = [ { label: "\u30A2\u30A4\u30C6\u30E0\u6570", value: (_a = items == null ? void 0 : items.length) != null ? _a : 0, icon: "\u{1F457}" }, { label: "\u304A\u6C17\u306B\u5165\u308A", value: likedCount, icon: "\u2764\uFE0F" }, { label: "\u30B9\u30BF\u30A4\u30EB\u6570", value: selected.length, icon: "\u2728" } ]; return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", marginBottom: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "80px", height: "80px", background: "linear-gradient(135deg, #667eea, #764ba2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "36px", margin: "0 auto 12px" } }, "\u{1F464}"), /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Playfair Display', serif", fontSize: "22px", fontWeight: "700" } }, user == null ? void 0 : user.name), selected.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", color: "#9b59b6", marginTop: "6px", fontWeight: "600" } }, selected.map((k) => { var _a2; return (_a2 = STYLE_OPTIONS.find((s) => s.key === k)) == null ? void 0 : _a2.label; }).join(" \xD7 "))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "20px" } }, stats.map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { background: "white", borderRadius: "16px", padding: "14px 8px", textAlign: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "20px", marginBottom: "4px" } }, s.icon), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "20px", fontWeight: "700", color: "#2a2a2a" } }, s.value), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#aaa" } }, s.label)))), (age || profile.height || profile.personalColor) && /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: "20px", padding: "16px 20px", marginBottom: "20px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: "700", fontSize: "14px", marginBottom: "12px", color: "#555" } }, "\u{1F4CB} \u57FA\u672C\u60C5\u5831"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "8px" } }, age && /* @__PURE__ */ React.createElement("span", { style: tagStyle("#667eea") }, age, "\u6B73"), profile.height && /* @__PURE__ */ React.createElement("span", { style: tagStyle("#9b59b6") }, profile.height, "cm / ", profile.weight, "kg"), profile.hairLength && /* @__PURE__ */ React.createElement("span", { style: tagStyle("#e91e63") }, HAIR_LABEL_MAP[profile.hairLength] || profile.hairLength), profile.skeletonType && /* @__PURE__ */ React.createElement("span", { style: tagStyle("#667eea") }, "\u9AA8\u683C", { straight: "\u30B9\u30C8\u30EC\u30FC\u30C8", wave: "\u30A6\u30A7\u30FC\u30D6", natural: "\u30CA\u30C1\u30E5\u30E9\u30EB" }[profile.skeletonType]), profile.personalColor && /* @__PURE__ */ React.createElement("span", { style: tagStyle("#f5af19") }, PC_LABEL_MAP[profile.personalColor]))), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: "20px", padding: "20px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", marginBottom: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: "700", fontSize: "15px", marginBottom: "6px" } }, "\u{1F3A8} \u597D\u304D\u306A\u30B9\u30BF\u30A4\u30EB\u3092\u9078\u307C\u3046"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#aaa", marginBottom: "16px" } }, "\u8907\u6570\u9078\u629EOK\u30FBAI\u30B3\u30FC\u30C7\u63D0\u6848\u306B\u6D3B\u7528\u3055\u308C\u307E\u3059"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "10px" } }, STYLE_OPTIONS.map((s) => { const isOn = selected.includes(s.key); return /* @__PURE__ */ React.createElement("button", { key: s.key, onClick: () => toggle(s.key), style: { display: "flex", alignItems: "center", gap: "14px", padding: "12px 16px", borderRadius: "14px", border:`2px solid ${isOn ? s.color : “#e8e8e8”}`, background: isOn ? s.light : "white", cursor: "pointer", textAlign: "left", fontFamily: "'Noto Sans JP', sans-serif", transition: "all 0.15s" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "40px", height: "40px", borderRadius: "12px", background: isOn ? s.color : "#f0f0f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", flexShrink: 0, transition: "all 0.15s" } }, s.emoji), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: "700", fontSize: "14px", color: isOn ? s.color : "#2a2a2a" } }, s.label), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#aaa", marginTop: "2px" } }, s.desc)), /* @__PURE__ */ React.createElement("div", { style: { width: "22px", height: "22px", borderRadius: "50%", border: `2px solid ${isOn ? s.color : “#ddd”}`, background: isOn ? s.color : "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" } }, isOn && /* @__PURE__ */ React.createElement("span", { style: { color: "white", fontSize: "13px", lineHeight: 1 } }, "\u2713"))); })), /* @__PURE__ */ React.createElement("button", { onClick: handleSave, style: { width: "100%", marginTop: "18px", padding: "14px", borderRadius: "14px", border: "none", background: saved ? "linear-gradient(135deg, #27ae60, #2ecc71)" : "linear-gradient(135deg, #667eea, #9b59b6)", color: "white", fontWeight: "700", fontSize: "15px", cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif", boxShadow: "0 4px 16px rgba(155,89,182,0.3)", transition: "background 0.3s" } }, saved ? "\u2705 \u4FDD\u5B58\u3057\u307E\u3057\u305F\uFF01" : "\u30B9\u30BF\u30A4\u30EB\u3092\u4FDD\u5B58\u3059\u308B"))); } const tagStyle = (color) => ({ background: color + "18", color, borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: "600" }); function FashionApp() { const [user, setUser] = useState(() => getSession()); const [activeTab, setActiveTab] = useState(0); const [items, setItems] = useState(SAMPLE_ITEMS); const [likedCoords, setLikedCoords] = useState({}); if (!user) return /* @__PURE__ */ React.createElement(AuthScreen, { onLogin: setUser }); const toggleLike = (id) => { setLikedCoords((prev) => ({ ...prev, [id]: !prev[id] })); }; const addItem = (form) => { setItems((prev) => [...prev, { id: Date.now(), ...form }]); }; const editItem = (updated) => { setItems((prev) => prev.map((i) => i.id === updated.id ? updated : i)); }; const deleteItem = (id) => { setItems((prev) => prev.filter((i) => i.id !== id)); }; const updateUser = (updated) => { saveSession(updated); setUser(updated); }; const tabIcons = ["\u{1F457}", "\u{1F5C2}\uFE0F", "\u{1F4F1}", "\u{1F6CD}\uFE0F", "\u{1F464}"]; return /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Noto Sans JP', sans-serif", background: "#f7f5f3", minHeight: "100vh", maxWidth: "430px", margin: "0 auto", display: "flex", flexDirection: "column" } }, /* @__PURE__ */ React.createElement("style", null, `
+@import url(‘https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap’);
+@keyframes spin { to { transform: rotate(360deg); } }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+input::placeholder { color: rgba(255,255,255,0.6); }
+::-webkit-scrollbar { display: none; }
+`), /* @**PURE** */ React.createElement(“div”, { style: {
+background: “white”,
+padding: “20px 20px 16px”,
+borderBottom: “1px solid #f0f0f0”,
+position: “sticky”,
+top: 0,
+zIndex: 10,
+boxShadow: “0 2px 12px rgba(0,0,0,0.05)”
+} }, /* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, justifyContent: “space-between”, alignItems: “center” } }, /* @**PURE** */ React.createElement(“div”, { style: { fontFamily: “‘Playfair Display’, serif”, fontSize: “26px”, fontWeight: “700”, letterSpacing: “-0.5px” } }, “Parure”), /* @**PURE** */ React.createElement(“div”, { style: { display: “flex”, alignItems: “center”, gap: “10px” } }, /* @**PURE** */ React.createElement(“span”, { style: { fontSize: “13px”, color: “#9b59b6”, fontWeight: “600” } }, “\u{1F44B} “, user.name), /* @**PURE** */ React.createElement(“button”, { onClick: () => {
+clearSession();
+setUser(null);
+}, style: {
+background: “#f5f0ff”,
+border: “none”,
+borderRadius: “10px”,
+padding: “5px 10px”,
+fontSize: “11px”,
+color: “#9b59b6”,
+fontWeight: “700”,
+cursor: “pointer”
+} }, “\u30ED\u30B0\u30A2\u30A6\u30C8”))), /* @**PURE** */ React.createElement(“div”, { style: { fontSize: “12px”, color: “#aaa”, marginTop: “2px” } }, (/* @**PURE** */ new Date()).toLocaleDateString(“ja-JP”, { month: “long”, day: “numeric”, weekday: “short” }))), /* @**PURE** */ React.createElement(“div”, { style: { flex: 1, padding: “20px”, overflowY: “auto”, paddingBottom: “80px” } }, activeTab === 0 && /* @**PURE** */ React.createElement(“div”, null, /* @**PURE** */ React.createElement(WeatherBadge, null), /* @**PURE** */ React.createElement(AICoordSection, { user, closetItems: items }), /* @**PURE** */ React.createElement(“div”, { style: { fontFamily: “‘Playfair Display’, serif”, fontSize: “18px”, fontWeight: “700”, marginBottom: “14px”, color: “#2a2a2a” } }, “\u304A\u3059\u3059\u3081\u30B3\u30FC\u30C7”), COORD_SUGGESTIONS.map((coord) => /* @**PURE** */ React.createElement(CoordCard, { key: coord.id, coord, onLike: toggleLike, liked: likedCoords[coord.id], user, closetItems: items }))), activeTab === 1 && /* @**PURE** */ React.createElement(ClosetTab, { items, onAddItem: addItem, onEditItem: editItem, onDeleteItem: deleteItem }), activeTab === 2 && /* @**PURE** */ React.createElement(TrendTab, { user }), activeTab === 3 && /* @**PURE** */ React.createElement(ShoppingTab, null), activeTab === 4 && /* @**PURE** */ React.createElement(ProfileTab, { user, onUpdateUser: updateUser, items, likedCoords })), /* @**PURE** */ React.createElement(“div”, { style: {
+position: “fixed”,
+bottom: 0,
+left: “50%”,
+transform: “translateX(-50%)”,
+width: “100%”,
+maxWidth: “430px”,
+background: “white”,
+borderTop: “1px solid #f0f0f0”,
+display: “flex”,
+boxShadow: “0 -4px 20px rgba(0,0,0,0.08)”
+} }, TABS.map((tab, i) => /* @**PURE** */ React.createElement(“button”, { key: i, onClick: () => setActiveTab(i), style: {
+flex: 1,
+padding: “12px 0”,
+background: “none”,
+border: “none”,
+cursor: “pointer”,
+display: “flex”,
+flexDirection: “column”,
+alignItems: “center”,
+gap: “2px”,
+transition: “all 0.2s”
+} }, /* @**PURE** */ React.createElement(“span”, { style: { fontSize: “20px”, opacity: activeTab === i ? 1 : 0.4 } }, tabIcons[i]), /* @**PURE** */ React.createElement(“span”, { style: {
+fontSize: “10px”,
+fontWeight: “600”,
+color: activeTab === i ? “#9b59b6” : “#aaa”,
+letterSpacing: “0.3px”
+} }, tab)))));
+}
+createRoot(document.getElementById(“root”)).render(/* @**PURE** */ React.createElement(FashionApp, null));
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  React.createElement(FashionApp)
+);
+
+  </script>
+</body>
 </html>
