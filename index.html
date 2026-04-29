@@ -4,34 +4,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#ffffff" />
-  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Parure" />
   <title>Parure</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; background: #f7f5f3; font-family: "Noto Sans JP", sans-serif; }
-    #root { height: 100%; }
-    ::-webkit-scrollbar { display: none; }
-    input, button { font-family: "Noto Sans JP", sans-serif; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 80% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
-    input:focus { border-color: #9b59b6 !important; background: white !important; outline: none; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;background:#f7f5f3;font-family:"Noto Sans JP",sans-serif}
+    #root{height:100%}
+    #loading{display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;color:#9b59b6;font-family:"Noto Sans JP",sans-serif}
+    #loading h1{font-size:32px;font-family:"Playfair Display",serif}
+    #loading p{font-size:13px;color:#aaa}
+    ::-webkit-scrollbar{display:none}
+    input,button{font-family:"Noto Sans JP",sans-serif}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    input:focus{border-color:#9b59b6!important;background:white!important;outline:none}
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel" data-presets="react">
+  <div id="root">
+    <div id="loading">
+      <h1>Parure</h1>
+      <p>読み込み中...</p>
+      <div style="width:24px;height:24px;border:3px solid #f0f0f0;border-top-color:#9b59b6;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js" onload="initApp()" onerror="showError()"></script>
+  <script>
+    function showError() {
+      document.getElementById('loading').innerHTML = '<h1>Parure</h1><p style="color:#e74c3c;margin-top:8px">読み込みに失敗しました。<br>インターネット接続を確認してください。</p>';
+    }
+    function initApp() {
+      try {
+        const code = document.getElementById('app-code').textContent;
+        const transformed = Babel.transform(code, {
+          presets: [['react', {}], ['env', {targets: {browsers: ['last 2 versions']}}]]
+        }).code;
+        const fn = new Function('React', 'ReactDOM', transformed);
+        fn(React, ReactDOM);
+      } catch(e) {
+        console.error(e);
+        showError();
+      }
+    }
+  </script>
+  <script type="text/plain" id="app-code">
     const { useState, useEffect } = React;
 
 // ─── Auth (localStorage) ─────────────────────────────────────────────────────
@@ -2185,8 +2207,9 @@ flexDirection: “column”,
 }
 
 ```
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<FashionApp />);
+const container = document.getElementById("root");
+const root = ReactDOM.createRoot(container);
+root.render(React.createElement(FashionApp));
 ```
 
   </script>
