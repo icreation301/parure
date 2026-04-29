@@ -1,0 +1,33 @@
+<!DNCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Parure</title>
+<style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:sans-serif;background:#f7f5f3;color:#9b59b6;flex-direction:column;gap:16px}div{width:32px;height:32px;border:3px solid #f0f0f0;border-top-color:#9b59b6;border-radius:50%;animation:spin 0.8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}</style>
+</head>
+<body>
+<div></div><p>Parure...</p>
+<script>
+(async()=>{
+try{
+const r=await fetch('/content.b64');
+const b64gz=await r.text();
+const bytes=Uint8Array.from(atob(b64gz),c=>c.charCodeAt(0));
+const ds=new DecompressionStream('gzip');
+const w=ds.writable.getWriter();
+w.write(bytes);w.close();
+const chunks=[];
+const reader=ds.readable.getReader();
+while(true){const{done,value}=await reader.read();if(done)break;chunks.push(value);}
+const total=chunks.reduce((a,c)=>a+c.length,0);
+const out=new Uint8Array(total);
+let o=0;for(const c of chunks){out.set(c,o);o+=c.length;}
+const html=new TextDecoder().decode(out);
+document.open();document.write(html);document.close();
+}catch(e){document.body.innerHTML='<p style="color:red;padding:20px">Error: '+e.message+'</p>';}
+})();
+</script>
+</body>
+</html>
