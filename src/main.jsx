@@ -1,14 +1,16 @@
-import { createRoot } from 'react-dom/client'
-import { useState, useEffect } from 'react'
+import { createRoot } from ‘react-dom/client’
+import { useState, useEffect } from ‘react’
 
-// ─── Auth (メモリ内ストア) ─────────────────────────────────────────────────────
-const _store = { users: {}, session: null };
-
-const getUsers = () => _store.users;
-const saveUsers = (users) => { _store.users = users; };
-const getSession = () => _store.session;
-const saveSession = (user) => { _store.session = user; };
-const clearSession = () => { _store.session = null; };
+// ─── Auth (localStorage) ─────────────────────────────────────────────────────
+const getUsers = () => {
+try { return JSON.parse(localStorage.getItem(“parure_users”) || “{}”); } catch { return {}; }
+};
+const saveUsers = (u) => localStorage.setItem(“parure_users”, JSON.stringify(u));
+const getSession = () => {
+try { return JSON.parse(localStorage.getItem(“parure_session”) || “null”); } catch { return null; }
+};
+const saveSession = (u) => localStorage.setItem(“parure_session”, JSON.stringify(u));
+const clearSession = () => localStorage.removeItem(“parure_session”);
 
 function AuthScreen({ onLogin }) {
 const [mode, setMode] = useState(“login”);
@@ -129,7 +131,6 @@ return (
 <div style={{ …overlayStyle, overflowY: “auto” }}>
 <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap'); @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} } input:focus { border-color: #9b59b6 !important; background: white !important; } * { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
 
-```
   <div style={{
     background: "linear-gradient(135deg, #667eea 0%, #9b59b6 60%, #e91e63 100%)",
     padding: "48px 20px 36px", textAlign: "center", borderRadius: "0 0 36px 36px",
@@ -328,7 +329,6 @@ return (
     </p>
   </div>
 </div>
-```
 
 );
 }
@@ -514,7 +514,6 @@ transition: “transform 0.2s”, transform: liked ? “scale(1.2)” : “scale
 </button>
 </div>
 
-```
   {/* アバター＋アイテム横並び */}
   <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "12px" }}>
     <div style={{ flexShrink: 0, background: "rgba(255,255,255,0.45)", borderRadius: "14px", padding: "6px" }}>
@@ -539,7 +538,6 @@ transition: “transform 0.2s”, transform: liked ? “scale(1.2)” : “scale
     <span>💡</span> {coord.tip}
   </div>
 </div>
-```
 
 );
 }
@@ -761,7 +759,6 @@ return (
 <svg viewBox={`0 0 80 ${totalH}`} width=“95” height={Math.min(330, Math.max(250, totalH))}
 style={{ display: “block” }}>
 
-```
   {/* 背景 */}
   <rect width="80" height={totalH} fill={cardColor} opacity="0.28" rx="10" />
 
@@ -864,7 +861,6 @@ style={{ display: “block” }}>
   <text x={x} y={totalH - 1} textAnchor="middle" fontSize="5.5" fill="rgba(0,0,0,0.25)"
     fontFamily="sans-serif">{height}cm</text>
 </svg>
-```
 
 );
 }
@@ -930,10 +926,8 @@ const age = profile?.birthdate
 ? Math.floor((Date.now() - new Date(profile.birthdate)) / (365.25 * 24 * 3600 * 1000))
 : null;
 
-```
 const profileDesc = hasProfile
   ? `【ユーザー情報】
-```
 
 - 年齢: ${age}歳
 - 身長: ${profile.height}cm / 体重: ${profile.weight}kg
@@ -1010,7 +1004,6 @@ borderRadius: “20px”, padding: “20px”, marginBottom: “14px”, color: 
 )}
 </div>
 
-```
   {/* 天気選択 */}
   <div style={{ marginBottom: "12px" }}>
     <div style={{ fontSize: "12px", fontWeight: "700", color: "#555", marginBottom: "8px" }}>今日の天気</div>
@@ -1137,7 +1130,6 @@ borderRadius: “20px”, padding: “20px”, marginBottom: “14px”, color: 
     </div>
   )}
 </div>
-```
 
 );
 }
@@ -1210,8 +1202,6 @@ overflowY: “auto”, padding: “24px”,
 animation: “slideUp 0.25s ease”,
 }}>
 <style>{`@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }`}</style>
-
-```
     <div style={{ width: "40px", height: "4px", background: "#e0e0e0", borderRadius: "4px", margin: "0 auto 20px" }} />
 
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
@@ -1437,7 +1427,6 @@ onClose={() => setModal(null)}
 />
 )}
 
-```
   {/* Header row */}
   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
     <div style={{ fontSize: "13px", color: "#aaa" }}>{items.length}アイテム</div>
@@ -1512,7 +1501,6 @@ onClose={() => setModal(null)}
     </button>
   </div>
 </div>
-```
 
 );
 }
@@ -1576,7 +1564,6 @@ borderRadius: “20px”, padding: “20px”, marginBottom: “20px”, color: 
 <div style={{ fontSize: “13px”, opacity: 0.85, marginTop: “4px” }}>お気に入りのサイトへジャンプ</div>
 </div>
 
-```
   {/* Search */}
   <div style={{ position: "relative", marginBottom: "20px" }}>
     <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "16px" }}>🔍</span>
@@ -1647,7 +1634,6 @@ borderRadius: “20px”, padding: “20px”, marginBottom: “20px”, color: 
     </div>
   )}
 </div>
-```
 
 );
 }
@@ -1662,7 +1648,6 @@ setSelected(trend);
 setResults(null);
 setLoading(true);
 
-```
 const profile = user?.profile;
 const pc = profile?.personalColor;
 const profileDesc = profile?.height
@@ -1692,7 +1677,6 @@ const prompt = `トレンドキーワード「${trend.title}」（${trend.desc}�
 ]
 ※itemsのトップス・ワンピース・アウターには必ず「半袖」「長袖」「七分袖」「ノースリーブ」のいずれかを含めること`;
 
-```
 try {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -1712,7 +1696,6 @@ try {
   setResults([{ title: "エラー", mood: "-", items: [], point: "もう一度お試しください" }]);
 }
 setLoading(false);
-```
 
 };
 
@@ -1737,8 +1720,7 @@ borderRadius: “20px”, padding: “20px”, marginBottom: “20px”, color: 
 {selected ? `「${selected.title}」の提案を表示中` : “トレンドをタップして提案を見る”}
 </div>
 </div>
-
-```
+  
   {/* トレンドカードグリッド */}
   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
     {TRENDS.map(trend => {
@@ -1836,7 +1818,6 @@ borderRadius: “20px”, padding: “20px”, marginBottom: “20px”, color: 
     </div>
   )}
 </div>
-```
 
 );
 }
@@ -1909,7 +1890,6 @@ fontSize: “36px”, margin: “0 auto 12px”,
 )}
 </div>
 
-```
   {/* スタッツ */}
   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "20px" }}>
     {stats.map((s, i) => (
@@ -2013,7 +1993,6 @@ fontSize: “36px”, margin: “0 auto 12px”,
     </button>
   </div>
 </div>
-```
 
 );
 }
@@ -2027,7 +2006,7 @@ fontSize: “12px”,
 fontWeight: “600”,
 });
 
-export default function FashionApp() {
+function FashionApp() {
 const [user, setUser] = useState(() => getSession());
 const [activeTab, setActiveTab] = useState(0);
 const [items, setItems] = useState(SAMPLE_ITEMS);
@@ -2070,7 +2049,6 @@ flexDirection: “column”,
 }}>
 <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap'); @keyframes spin { to { transform: rotate(360deg); } } * { box-sizing: border-box; margin: 0; padding: 0; } input::placeholder { color: rgba(255,255,255,0.6); } ::-webkit-scrollbar { display: none; }`}</style>
 
-```
   {/* Header */}
   <div style={{
     background: "white",
@@ -2147,4 +2125,5 @@ flexDirection: “column”,
 
 );
 }
-createRoot(document.getElementById('root')).render(<FashionApp />)
+
+createRoot(document.getElementById(‘root’)).render(<FashionApp />)
