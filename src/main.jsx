@@ -2144,7 +2144,6 @@ flexDirection: “column”,
     ))}
   </div>
 </div>
-```
 
 );
 }
